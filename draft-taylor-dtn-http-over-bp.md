@@ -99,47 +99,7 @@ This document specifies a mechanism for carrying HTTP over Bundle Protocol Versi
 
 This document specifies a mechanism for carrying HTTP over networks that use Bundle Protocol Version 7 (BPv7) {{RFC9171}}: HTTP over BP. HTTP semantics {{RFC9110}} are unchanged; only the transport beneath them is replaced. Each HTTP request and each HTTP response is encoded as a Binary HTTP message {{RFC9292}} and carried as the application data unit (ADU) of a single bundle, inside a small CBOR {{RFC8949}} envelope that correlates each response with its request ({{envelope}}). No connection, stream, or sequence state spans the bundle network. Every bundle can be interpreted on its own, so reordering, duplication, and arbitrary delay need no recovery mechanism, and the loss of a bundle loses one exchange, never a connection.
 
-This document specifies the protocol spoken across the bundle network, not a product. Any BP node can use it to send HTTP requests or to answer them, whether or not that node also speaks HTTP over IP. It has two principal uses.
-
-The first is HTTP application-layer gateways. A pair of gateways, one at each edge of a bundle network, lets unmodified HTTP clients and origin servers communicate across it. Each gateway terminates the HTTP connections on its own side, and the gateways exchange requests and responses with each other using HTTP over BP. HTTP runs end to end, between client and origin server, while the transport beneath it changes from hop to hop:
-
-~~~ artwork
-+--------+                                                +--------+
-|        |<==================== HTTP ====================>|        |
-|        |                                                |        |
-|        |      +-------------+      +-------------+      |        |
-| client |<---->| client-side |<---->| origin-side |<---->| origin |
-|        |  IP  |   gateway   |  BP  |   gateway   |  IP  | server |
-+--------+      +-------------+      +-------------+      +--------+
-~~~
-{: #fig-overview title="HTTP Gateways at the Edges of a Bundle Network"}
-
-The DTN architecture anticipated gateways of this kind. One of its stated aims is "to provide a common method for interconnecting application layer gateways and proxies", so that existing Internet applications that can be made to tolerate delay can "operate unmodified over a DTN-based network" ({{Section 3.11 of RFC4838}}). HTTP over BP is that common method for HTTP: the protocol beneath the web, most application programming interfaces, and most streaming media. With it, the large body of existing HTTP clients, servers, tools, and libraries can be used across bundle networks without being rewritten.
-
-A gateway does more than translate between transports. HTTP's own means of coping with an expensive path work at the application layer, where only an intermediary can apply them: a client-side gateway answers what it can from its cache, collapses identical requests into one, and revalidates stored responses with conditional requests that cost little when nothing has changed ({{caching}}). Content can also be placed on the near side of a bundle network in advance, so that only cache fill crosses it. {{RFC3135}} describes such a device as an application layer performance enhancing proxy, with "the same functionality as the corresponding regular proxy for the same application (e.g., relay MTA or Web caching proxy) but extended with link-specific optimizations of the application protocol operation".
-
-The second use is BP-native HTTP. An application on a BP node, such as software on a spacecraft or a surface asset, can act as an HTTP client by sending requests over BP itself, with no IP stack and no client-side gateway. It can reach an origin server on the Internet through an origin-side gateway:
-
-~~~ artwork
-+------------------+                                      +--------+
-|                  |<=============== HTTP ===============>|        |
-|                  |                                      |        |
-|                  |                 +-------------+      |        |
-| BP-native client |<--------------->| origin-side |<---->| origin |
-|                  |       BP        |   gateway   |  IP  | server |
-+------------------+                 +-------------+      +--------+
-~~~
-{: #fig-native-client title="A BP-Native HTTP Client"}
-
-An application can likewise act as an origin server directly over BP, publishing resources that clients on the Internet reach through a client-side gateway, and a BP-native client can reach a BP-native origin server with no gateway at all. Such applications use HTTP's methods, status codes, caching, and media types, and existing HTTP libraries for constructing and parsing messages, rather than defining an application protocol of their own. A node can choose for itself whether to reach a service over IP, through a gateway, or over BP directly, and the HTTP semantics are the same in each case.
-
-There are other ways to bring HTTP to a bundle network, and each has a cost. Applications can be rewritten to use BP directly with a protocol of their own, which suits purpose-built applications such as spacecraft operations, but cannot be asked of HTTP software in general. TCP/IP or QUIC can be run end to end, whether directly across the path or by carrying IP packets in bundles, but these transports assume a contemporaneous end-to-end path: they spend round trips establishing and securing a connection, retransmit on short timers, and treat a path that stays silent for long as failed. Carrying the bytes of an HTTP connection in bundles {{I-D.blanchet-dtn-http-over-bp}} avoids IP, but inherits the connection's need for reliable, in-order delivery, which BP does not provide. Carrying HTTP's messages, rather than its connections, avoids all of these costs.
-
-HTTP is well suited to this. Its semantics are defined independently of the protocols that carry them, and have already been mapped onto more than one transport, most recently QUIC {{RFC9114}}. Each request and each response is a self-contained message. HTTP already defines the role of intermediaries, which fields are end to end and which belong to a single connection ({{Section 7.6.1 of RFC9110}}), and how intermediaries cache {{RFC9111}}. Gateways are HTTP intermediaries ({{Section 3.7 of RFC9110}}), so this document needs to specify little beyond the bundle hop, and relies on existing HTTP specifications wherever it can.
-
-The design assumes disruption, not necessarily delay. On a bundle path with low latency the mechanisms described here for tolerating delay never engage: responses arrive before any client notices, and a gateway pair behaves as an ordinary caching reverse proxy.
-
-CoAP over BP {{I-D.ietf-core-coap-bp}} specifies how the Constrained Application Protocol, which already runs over a message-oriented transport, is carried over BP. This document does the same for HTTP, whose usual transports are connection-oriented. Existing mappings between HTTP and CoAP {{RFC8075}} apply between the two.
+Any BP node can use HTTP over BP to send HTTP requests or to answer them, whether or not that node also speaks HTTP over IP. {{applicability}} describes the uses of the mechanism and how it compares with the alternatives.
 
 ## Scope {#scope}
 
@@ -157,7 +117,8 @@ Directing clients to a gateway:
 Selecting a responder:
 : The mapping from an authority to the EID of a responder can be configured, or obtained from a resolution service, for example one built on DNS Service Binding records {{RFC9460}}. {{discovery}} gives the requirements that any such mechanism has to meet.
 
-> Editor's note: a companion document is expected to specify an SVCB-based mechanism.
+> A companion document is expected to specify an SVCB-based mechanism.
+{:cref}
 
 Admission and capacity policy:
 : Which requests a gateway admits, and how it rations the capacity of a bundle path, are matters for each deployment. Gateways convey their decisions with existing HTTP mechanisms: 413 (Content Too Large), and 503 (Service Unavailable) with Retry-After {{RFC9110}}; 429 (Too Many Requests) {{RFC6585}}; and Problem Details {{RFC9457}}. Quota policies can be advertised with the RateLimit fields {{I-D.ietf-httpapi-ratelimit-headers}}.
@@ -175,7 +136,7 @@ Streaming media:
 : Segmented media formats such as HTTP Live Streaming {{RFC8216}} were designed to traverse HTTP caches, and cross a gateway pair without adaptation.
 
 Other application protocols:
-: CoAP is carried over BP by {{I-D.ietf-core-coap-bp}}. Tunnelling (CONNECT), WebSocket, and other protocols that require an interactive end-to-end connection are not supported ({{unsupported}}).
+: CoAP, which already runs over a message-oriented transport, is carried over BP by {{I-D.ietf-core-coap-bp}}; existing mappings between HTTP and CoAP {{RFC8075}} apply between the two. Tunnelling (CONNECT), WebSocket, and other protocols that require an interactive end-to-end connection are not supported ({{unsupported}}).
 
 # Conventions and Terminology
 
@@ -204,7 +165,66 @@ Response ADU:
 Exchange:
 : A request ADU together with the response ADU or ADUs that answer it, identified by a correlation identifier ({{correlation}}).
 
+# Applicability {#applicability}
+
+HTTP over BP has two principal uses: HTTP application-layer gateways ({{use-gateways}}) and BP-native HTTP applications ({{use-native}}). {{alternatives}} compares it with other ways of bringing HTTP to a bundle network.
+
+## HTTP Gateways {#use-gateways}
+
+A pair of HTTP application-layer gateways, one at each edge of a bundle network, lets unmodified HTTP clients and origin servers communicate across it. Each gateway terminates the HTTP connections on its own side, and the gateways exchange requests and responses with each other using HTTP over BP. HTTP runs end to end, between client and origin server, while the transport beneath it changes from hop to hop:
+
+~~~ artwork
++--------+                                                +--------+
+|        |<==================== HTTP ====================>|        |
+|        |                                                |        |
+|        |      +-------------+      +-------------+      |        |
+| client |<---->| client-side |<---->| origin-side |<---->| origin |
+|        |  IP  |   gateway   |  BP  |   gateway   |  IP  | server |
++--------+      +-------------+      +-------------+      +--------+
+~~~
+{: #fig-overview title="HTTP Gateways at the Edges of a Bundle Network"}
+
+The DTN architecture anticipated gateways of this kind. One of its stated aims is "to provide a common method for interconnecting application layer gateways and proxies", so that existing Internet applications that can be made to tolerate delay can "operate unmodified over a DTN-based network" ({{Section 3.11 of RFC4838}}). HTTP over BP is that common method for HTTP: the protocol beneath the web, most application programming interfaces, and most streaming media. With it, the large body of existing HTTP clients, servers, tools, and libraries can be used across bundle networks without being rewritten.
+
+A gateway does more than translate between transports. HTTP's own means of coping with an expensive path work at the application layer, where only an intermediary can apply them: a client-side gateway answers what it can from its cache, collapses identical requests into one, and revalidates stored responses with conditional requests that cost little when nothing has changed ({{caching}}). Content can also be placed on the near side of a bundle network in advance, so that only cache fill crosses it. {{RFC3135}} describes such a device as an application layer performance enhancing proxy, with "the same functionality as the corresponding regular proxy for the same application (e.g., relay MTA or Web caching proxy) but extended with link-specific optimizations of the application protocol operation".
+
+The design assumes disruption, not necessarily delay. On a bundle path with low latency the mechanisms described here for tolerating delay never engage: responses arrive before any client notices, and a gateway pair behaves as an ordinary caching reverse proxy.
+
+## BP-Native HTTP {#use-native}
+
+An application on a BP node, such as software on a spacecraft or a surface asset, can act as an HTTP client by sending requests over BP itself, with no IP stack and no client-side gateway. It can reach an origin server on the Internet through an origin-side gateway:
+
+~~~ artwork
++------------------+                                      +--------+
+|                  |<=============== HTTP ===============>|        |
+|                  |                                      |        |
+|                  |                 +-------------+      |        |
+| BP-native client |<--------------->| origin-side |<---->| origin |
+|                  |       BP        |   gateway   |  IP  | server |
++------------------+                 +-------------+      +--------+
+~~~
+{: #fig-native-client title="A BP-Native HTTP Client"}
+
+An application can likewise act as an origin server directly over BP, publishing resources that clients on the Internet reach through a client-side gateway, and a BP-native client can reach a BP-native origin server with no gateway at all. Such applications use HTTP's methods, status codes, caching, and media types, and existing HTTP libraries for constructing and parsing messages, rather than defining an application protocol of their own. A node can choose for itself whether to reach a service over IP, through a gateway, or over BP directly, and the HTTP semantics are the same in each case.
+
+## Alternatives {#alternatives}
+
+There are other ways to bring HTTP to a bundle network, and each has a cost.
+
+Application-specific protocols:
+: Applications can be rewritten to use BP directly, with an application protocol of their own. This suits purpose-built applications, such as spacecraft operations, but cannot be asked of HTTP software in general.
+
+End-to-end transport:
+: TCP/IP or QUIC can be run end to end, either directly across the path or by carrying IP packets in bundles. These transports assume a contemporaneous end-to-end path: they spend round trips establishing and securing a connection, retransmit on short timers, and treat a path that stays silent for long as failed.
+
+HTTP connections in bundles:
+: The bytes of an HTTP connection can be carried in bundles {{I-D.blanchet-dtn-http-over-bp}}. This avoids IP, but inherits the connection's need for reliable, in-order delivery, which BP does not provide.
+
+Carrying HTTP's messages, rather than its connections, avoids all of these costs.
+
 # Architecture {#architecture}
+
+HTTP is well suited to being carried as individual messages. Its semantics are defined independently of the protocols that carry them, and have already been mapped onto more than one transport, most recently QUIC {{RFC9114}}. Each request and each response is a self-contained message. HTTP already defines the role of intermediaries ({{Section 3.7 of RFC9110}}), which fields are end to end and which belong to a single connection ({{Section 7.6.1 of RFC9110}}), and how intermediaries cache {{RFC9111}}. This document therefore needs to specify little beyond the bundle hop.
 
 ## Roles
 
@@ -368,7 +388,8 @@ A client-side gateway has to receive the complete request content before it can 
 
 Each gateway MUST record itself in the Via header field as {{Section 7.6.3 of RFC9110}} requires of an HTTP-to-HTTP gateway. A client-side gateway appends its entry to the request before encoding it; an origin-side gateway appends its entry before forwarding the request to the origin server. Each SHOULD likewise append its entry to the response. Gateways SHOULD use a pseudonym rather than a host name as the received-by value, as {{Section 7.6.3 of RFC9110}} permits.
 
-> Editor's note: the received-protocol that an origin-side gateway records for a request received over BP is an open issue ({{open-issues}}).
+> The received-protocol that an origin-side gateway records for a request received over BP is an open issue ({{open-issues}}).
+{:cref}
 
 A responder with a clock that receives a response without a Date header field from an origin server MUST add one before encoding the response, as {{Section 6.6.1 of RFC9110}} requires of any recipient that forwards such a response.
 
@@ -463,13 +484,15 @@ The requester combines the parts as {{Section 3.3 of RFC9111}} and {{Section 3.4
 
 A responder SHOULD bound the resources it spends on any one incremental response, such as bytes, parts, and elapsed time. A responder that abandons a response before it is complete SHOULD send a final response ADU containing a 502 (Bad Gateway) response with a Proxy-Status field (for example, with error type "http_response_body_size"). On receiving it, the requester fails the exchange and MUST NOT treat the content received so far as a complete representation.
 
-> Editor's note: an origin-side gateway might need to supply a strong validator for a response that has none. Whether, and how, it should do so without creating a validator the origin server would not recognise is an open issue ({{open-issues}}).
+> An origin-side gateway might need to supply a strong validator for a response that has none. Whether, and how, it should do so without creating a validator the origin server would not recognise is an open issue ({{open-issues}}).
+{:cref}
 
 ## Event Streams {#event-streams}
 
 An event stream (the `text/event-stream` media type {{HTML}}) has no end, so it can be carried neither as a single response nor as a finite sequence of parts. Its contract is nevertheless tolerant of delay: events are delivered in order, in one direction, eventually, and a client can resume a stream from the identifier of the last event it received. This document carries an event stream as a sequence of finite segments.
 
-> Editor's note: this section is less mature than the rest of the document, and could move to a companion document.
+> This section is less mature than the rest of the document, and could move to a companion document.
+{:cref}
 
 To request segment K of an event stream, a requester sends a GET request for the stream's target URI with the segment option (key -1) set to K. The option is critical, so a responder that does not support segments refuses the request ({{options}}) instead of opening a response that never ends.
 
@@ -642,7 +665,8 @@ This document requests that IANA register the following entry in the "'ipn' Sche
 | TBD1  | HTTP over BP | (this document) |
 {: #iana-service-tab align="left" title="Service Number Registration"}
 
-RFC Editor: please replace TBD1 throughout this document with the value assigned by IANA, and remove this note.
+> RFC Editor: please replace TBD1 throughout this document with the value assigned by IANA, and remove this note.
+{:aside}
 
 ## HTTP over BP Options Registry {#iana-options}
 
@@ -818,8 +842,7 @@ Why gateways rather than tunnels:
 : A gateway can answer requests from its cache, collapse requests, and revalidate cheaply, which are the means by which HTTP copes with an expensive path. A tunnel can do none of these things, and needs the interactive end-to-end connection that a bundle network cannot provide.
 
 # Open Issues {#open-issues}
-
-RFC Editor: please remove this appendix before publication.
+{:removeinrfc}
 
 - Via received-protocol: which received-protocol an origin-side gateway should record for a request received over BP. Candidates include the client's HTTP version, which is not currently conveyed, or a new protocol name.
 - dtn-scheme endpoints: whether to define a well-known dtn-scheme demux for this service, alongside the ipn service number.
@@ -832,6 +855,6 @@ RFC Editor: please remove this appendix before publication.
 - Naming: the name "HTTP over BP" was used by {{I-D.blanchet-dtn-http-over-bp}}, which specified a different approach.
 
 # Acknowledgments
-{:numbered="false"}
+{:unnumbered}
 
 TODO acknowledge.
