@@ -11,8 +11,8 @@ number:
 date:
 consensus: true
 v: 3
-area: Internet
-workgroup: Delay/Disruption Tolerant Networking
+area: "Internet"
+workgroup: "Delay/Disruption Tolerant Networking"
 keyword:
 
 - DTN
@@ -22,12 +22,12 @@ keyword:
 - Binary HTTP
 - Caching
 venue:
-  group: Delay/Disruption Tolerant Networking
-  type: Working Group
-  mail: dtn@ietf.org
-  arch: https://mailarchive.ietf.org/arch/browse/dtn/
-  github: ricktaylor/http-over-bp
-  latest: https://ricktaylor.github.io/http-over-bp/draft-taylor-dtn-http-over-bp.html
+  group: "Delay/Disruption Tolerant Networking"
+  type: "Working Group"
+  mail: "dtn@ietf.org"
+  arch: "https://mailarchive.ietf.org/arch/browse/dtn/"
+  github: "ricktaylor/http-over-bp"
+  latest: "https://ricktaylor.github.io/http-over-bp/draft-taylor-dtn-http-over-bp.html"
 
 author:
 
