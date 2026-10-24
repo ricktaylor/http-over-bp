@@ -792,7 +792,7 @@ ddeeffa1 011b0000 00c4fdd2 2efa588a  ..............X.
 7573223a 226f6b22 7d00               us":"ok"}.
 ~~~
 
-## Age
+## Age {#example-age}
 
 The response is delivered to the client-side gateway at 12:20:00.250. The response carries no Age field, so age_value is 0.
 
