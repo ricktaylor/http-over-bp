@@ -83,57 +83,61 @@ Table of Contents
    1.  Introduction
      1.1.  Scope
    2.  Conventions and Terminology
-   3.  Architecture
-     3.1.  Roles
-     3.2.  Principles
-   4.  Endpoints and Addressing
-     4.1.  Responder Endpoint
-     4.2.  Requester Endpoint
-     4.3.  Selecting a Responder
-   5.  ADU Format
-     5.1.  Structure
-     5.2.  Version
-     5.3.  Correlation Identifier
-     5.4.  Options
-       5.4.1.  service-time
-       5.4.2.  respond-by
-     5.5.  HTTP Message
-     5.6.  Field Handling
-   6.  Exchange Procedures
-     6.1.  Sending a Request
-     6.2.  Processing a Request
-     6.3.  Sending a Response
-     6.4.  Receiving a Response
-     6.5.  Deadlines and Failure
-   7.  Extended Exchanges
-     7.1.  Incremental Responses
-     7.2.  Event Streams
-   8.  Unsupported HTTP Features
-   9.  Gateway Considerations
-     9.1.  Caching
-     9.2.  Calculating Age
-     9.3.  Responding to Clients During an Exchange
-     9.4.  Ordering
-     9.5.  Chained Gateways
-   10. Operational Considerations
-   11. Security Considerations
-     11.1.  Trust Model
-     11.2.  Protecting the Bundle Hop
-     11.3.  Response Admission and Cache Poisoning
-     11.4.  Resolution Integrity
-     11.5.  Correlation Identifiers
-     11.6.  Server-Side Request Forgery
-     11.7.  Replay
-     11.8.  Timing Integrity
-     11.9.  Resource Exhaustion
-     11.10. Credentials and Privacy
-   12. IANA Considerations
-     12.1.  Well-Known Service Number
-     12.2.  HTTP over BP Options Registry
-     12.3.  HTTP Proxy Error Type
-   13. References
-     13.1.  Normative References
-     13.2.  Informative References
+   3.  Applicability
+     3.1.  HTTP Gateways
+     3.2.  BP-Native HTTP
+     3.3.  Alternatives
+   4.  Architecture
+     4.1.  Roles
+     4.2.  Principles
+   5.  Endpoints and Addressing
+     5.1.  Responder Endpoint
+     5.2.  Requester Endpoint
+     5.3.  Selecting a Responder
+   6.  ADU Format
+     6.1.  Structure
+     6.2.  Version
+     6.3.  Correlation Identifier
+     6.4.  Options
+       6.4.1.  service-time
+       6.4.2.  respond-by
+     6.5.  HTTP Message
+     6.6.  Field Handling
+   7.  Exchange Procedures
+     7.1.  Sending a Request
+     7.2.  Processing a Request
+     7.3.  Sending a Response
+     7.4.  Receiving a Response
+     7.5.  Deadlines and Failure
+   8.  Extended Exchanges
+     8.1.  Incremental Responses
+     8.2.  Event Streams
+   9.  Unsupported HTTP Features
+   10. Gateway Considerations
+     10.1.  Caching
+     10.2.  Calculating Age
+     10.3.  Responding to Clients During an Exchange
+     10.4.  Ordering
+     10.5.  Chained Gateways
+   11. Operational Considerations
+   12. Security Considerations
+     12.1.  Trust Model
+     12.2.  Protecting the Bundle Hop
+     12.3.  Response Admission and Cache Poisoning
+     12.4.  Resolution Integrity
+     12.5.  Correlation Identifiers
+     12.6.  Server-Side Request Forgery
+     12.7.  Replay
+     12.8.  Timing Integrity
+     12.9.  Resource Exhaustion
+     12.10. Credentials and Privacy
+   13. IANA Considerations
+     13.1.  Well-Known Service Number
+     13.2.  HTTP over BP Options Registry
+     13.3.  HTTP Proxy Error Type
+   14. References
+     14.1.  Normative References
+     14.2.  Informative References
    Appendix A.  Examples
      A.1.  Request
      A.2.  Response
@@ -152,134 +156,29 @@ Table of Contents
    encoded as a Binary HTTP message [RFC9292] and carried as the
    application data unit (ADU) of a single bundle, inside a small CBOR
    [RFC8949] envelope that correlates each response with its request
-   (Section 5.1).  No connection, stream, or sequence state spans the
+   (Section 6.1).  No connection, stream, or sequence state spans the
    bundle network.  Every bundle can be interpreted on its own, so
    reordering, duplication, and arbitrary delay need no recovery
    mechanism, and the loss of a bundle loses one exchange, never a
    connection.
 
-   This document specifies the protocol spoken across the bundle
-   network, not a product.  Any BP node can use it to send HTTP requests
-   or to answer them, whether or not that node also speaks HTTP over IP.
-   It has two principal uses.
-
-   The first is HTTP application-layer gateways.  A pair of gateways,
-   one at each edge of a bundle network, lets unmodified HTTP clients
-   and origin servers communicate across it.  Each gateway terminates
-   the HTTP connections on its own side, and the gateways exchange
-   requests and responses with each other using HTTP over BP.  HTTP runs
-   end to end, between client and origin server, while the transport
-   beneath it changes from hop to hop:
-
-   +--------+                                                +--------+
-   |        |<==================== HTTP ====================>|        |
-   |        |                                                |        |
-   |        |      +-------------+      +-------------+      |        |
-   | client |<---->| client-side |<---->| origin-side |<---->| origin |
-   |        |  IP  |   gateway   |  BP  |   gateway   |  IP  | server |
-   +--------+      +-------------+      +-------------+      +--------+
-
-          Figure 1: HTTP Gateways at the Edges of a Bundle Network
-
-   The DTN architecture anticipated gateways of this kind.  One of its
-   stated aims is "to provide a common method for interconnecting
-   application layer gateways and proxies", so that existing Internet
-   applications that can be made to tolerate delay can "operate
-   unmodified over a DTN-based network" (Section 3.11 of [RFC4838]).
-   HTTP over BP is that common method for HTTP: the protocol beneath the
-   web, most application programming interfaces, and most streaming
-   media.  With it, the large body of existing HTTP clients, servers,
-   tools, and libraries can be used across bundle networks without being
-   rewritten.
-
-   A gateway does more than translate between transports.  HTTP's own
-   means of coping with an expensive path work at the application layer,
-   where only an intermediary can apply them: a client-side gateway
-   answers what it can from its cache, collapses identical requests into
-   one, and revalidates stored responses with conditional requests that
-   cost little when nothing has changed (Section 9.1).  Content can also
-   be placed on the near side of a bundle network in advance, so that
-   only cache fill crosses it.  [RFC3135] describes such a device as an
-   application layer performance enhancing proxy, with "the same
-   functionality as the corresponding regular proxy for the same
-   application (e.g., relay MTA or Web caching proxy) but extended with
-   link-specific optimizations of the application protocol operation".
-
-   The second use is BP-native HTTP.  An application on a BP node, such
-   as software on a spacecraft or a surface asset, can act as an HTTP
-   client by sending requests over BP itself, with no IP stack and no
-   client-side gateway.  It can reach an origin server on the Internet
-   through an origin-side gateway:
-
-   +------------------+                                      +--------+
-   |                  |<=============== HTTP ===============>|        |
-   |                  |                                      |        |
-   |                  |                 +-------------+      |        |
-   | BP-native client |<--------------->| origin-side |<---->| origin |
-   |                  |       BP        |   gateway   |  IP  | server |
-   +------------------+                 +-------------+      +--------+
-
-                     Figure 2: A BP-Native HTTP Client
-
-   An application can likewise act as an origin server directly over BP,
-   publishing resources that clients on the Internet reach through a
-   client-side gateway, and a BP-native client can reach a BP-native
-   origin server with no gateway at all.  Such applications use HTTP's
-   methods, status codes, caching, and media types, and existing HTTP
-   libraries for constructing and parsing messages, rather than defining
-   an application protocol of their own.  A node can choose for itself
-   whether to reach a service over IP, through a gateway, or over BP
-   directly, and the HTTP semantics are the same in each case.
-
-   There are other ways to bring HTTP to a bundle network, and each has
-   a cost.  Applications can be rewritten to use BP directly with a
-   protocol of their own, which suits purpose-built applications such as
-   spacecraft operations, but cannot be asked of HTTP software in
-   general.  TCP/IP or QUIC can be run end to end, whether directly
-   across the path or by carrying IP packets in bundles, but these
-   transports assume a contemporaneous end-to-end path: they spend round
-   trips establishing and securing a connection, retransmit on short
-   timers, and treat a path that stays silent for long as failed.
-   Carrying the bytes of an HTTP connection in bundles
-   [I-D.blanchet-dtn-http-over-bp] avoids IP, but inherits the
-   connection's need for reliable, in-order delivery, which BP does not
-   provide.  Carrying HTTP's messages, rather than its connections,
-   avoids all of these costs.
-
-   HTTP is well suited to this.  Its semantics are defined independently
-   of the protocols that carry them, and have already been mapped onto
-   more than one transport, most recently QUIC [RFC9114].  Each request
-   and each response is a self-contained message.  HTTP already defines
-   the role of intermediaries, which fields are end to end and which
-   belong to a single connection (Section 7.6.1 of [RFC9110]), and how
-   intermediaries cache [RFC9111].  Gateways are HTTP intermediaries
-   (Section 3.7 of [RFC9110]), so this document needs to specify little
-   beyond the bundle hop, and relies on existing HTTP specifications
-   wherever it can.
-
-   The design assumes disruption, not necessarily delay.  On a bundle
-   path with low latency the mechanisms described here for tolerating
-   delay never engage: responses arrive before any client notices, and a
-   gateway pair behaves as an ordinary caching reverse proxy.
-
-   CoAP over BP [I-D.ietf-core-coap-bp] specifies how the Constrained
-   Application Protocol, which already runs over a message-oriented
-   transport, is carried over BP.  This document does the same for HTTP,
-   whose usual transports are connection-oriented.  Existing mappings
-   between HTTP and CoAP [RFC8075] apply between the two.
+   Any BP node can use HTTP over BP to send HTTP requests or to answer
+   them, whether or not that node also speaks HTTP over IP.  Section 3
+   describes the uses of the mechanism and how it compares with the
+   alternatives.
 
 1.1.  Scope
 
    This document specifies:
 
-   *  the format of the ADUs that carry HTTP messages (Section 5);
+   *  the format of the ADUs that carry HTTP messages (Section 6);
 
    *  the procedures by which a requester and a responder exchange them
-      (Section 6), including responses that are produced incrementally
-      and event streams (Section 7); and
+      (Section 7), including responses that are produced incrementally
+      and event streams (Section 8); and
 
    *  requirements and guidance for gateways that preserve HTTP
-      semantics across a bundle network, chiefly caching (Section 9).
+      semantics across a bundle network, chiefly caching (Section 10).
 
    This document builds on existing specifications wherever it can.  The
    following functions are outside its scope; most are already covered
@@ -296,11 +195,12 @@ Table of Contents
    Selecting a responder:  The mapping from an authority to the EID of a
       responder can be configured, or obtained from a resolution
       service, for example one built on DNS Service Binding records
-      [RFC9460].  Section 4.3 gives the requirements that any such
+      [RFC9460].  Section 5.3 gives the requirements that any such
       mechanism has to meet.
 
-      Editor's note: a companion document is expected to specify an
-      SVCB-based mechanism.
+
+   // A companion document is expected to specify an SVCB-based
+   // mechanism.
 
    Admission and capacity policy:  Which requests a gateway admits, and
       how it rations the capacity of a bundle path, are matters for each
@@ -315,10 +215,10 @@ Table of Contents
       resubmit unsafe requests without repeating their effect using the
       Idempotency-Key field [I-D.ietf-httpapi-idempotency-key-header],
       and divide large uploads into independent steps with Resumable
-      Uploads for HTTP [I-D.ietf-httpbis-resumable-upload].  Section 9.3
-      describes how these apply at a gateway.
+      Uploads for HTTP [I-D.ietf-httpbis-resumable-upload].
+      Section 10.3 describes how these apply at a gateway.
 
-   End-to-end security:  TLS terminates at the gateways (Section 11).
+   End-to-end security:  TLS terminates at the gateways (Section 12).
       Mechanisms that protect HTTP messages, rather than connections,
       pass through gateways unchanged: HTTP Message Signatures [RFC9421]
       authenticate messages, Encrypted Content-Encoding [RFC8188]
@@ -335,10 +235,12 @@ Table of Contents
       [RFC8216] were designed to traverse HTTP caches, and cross a
       gateway pair without adaptation.
 
-   Other application protocols:  CoAP is carried over BP by
-      [I-D.ietf-core-coap-bp].  Tunnelling (CONNECT), WebSocket, and
-      other protocols that require an interactive end-to-end connection
-      are not supported (Section 8).
+   Other application protocols:  CoAP, which already runs over a
+      message-oriented transport, is carried over BP by
+      [I-D.ietf-core-coap-bp]; existing mappings between HTTP and CoAP
+      [RFC8075] apply between the two.  Tunnelling (CONNECT), WebSocket,
+      and other protocols that require an interactive end-to-end
+      connection are not supported (Section 9).
 
 2.  Conventions and Terminology
 
@@ -374,18 +276,136 @@ Table of Contents
       receives over BP to origin servers over conventional HTTP
       connections, and returns their responses over BP.
 
-   Request ADU:  An ADU, formatted as specified in Section 5, that
+   Request ADU:  An ADU, formatted as specified in Section 6, that
       carries an HTTP request.
 
-   Response ADU:  An ADU, formatted as specified in Section 5, that
+   Response ADU:  An ADU, formatted as specified in Section 6, that
       carries an HTTP response.
 
    Exchange:  A request ADU together with the response ADU or ADUs that
-      answer it, identified by a correlation identifier (Section 5.3).
+      answer it, identified by a correlation identifier (Section 6.3).
 
-3.  Architecture
+3.  Applicability
 
-3.1.  Roles
+   HTTP over BP has two principal uses: HTTP application-layer gateways
+   (Section 3.1) and BP-native HTTP applications (Section 3.2).
+   Section 3.3 compares it with other ways of bringing HTTP to a bundle
+   network.
+
+3.1.  HTTP Gateways
+
+   A pair of HTTP application-layer gateways, one at each edge of a
+   bundle network, lets unmodified HTTP clients and origin servers
+   communicate across it.  Each gateway terminates the HTTP connections
+   on its own side, and the gateways exchange requests and responses
+   with each other using HTTP over BP.  HTTP runs end to end, between
+   client and origin server, while the transport beneath it changes from
+   hop to hop:
+
+   +--------+                                                +--------+
+   |        |<==================== HTTP ====================>|        |
+   |        |                                                |        |
+   |        |      +-------------+      +-------------+      |        |
+   | client |<---->| client-side |<---->| origin-side |<---->| origin |
+   |        |  IP  |   gateway   |  BP  |   gateway   |  IP  | server |
+   +--------+      +-------------+      +-------------+      +--------+
+
+          Figure 1: HTTP Gateways at the Edges of a Bundle Network
+
+   The DTN architecture anticipated gateways of this kind.  One of its
+   stated aims is "to provide a common method for interconnecting
+   application layer gateways and proxies", so that existing Internet
+   applications that can be made to tolerate delay can "operate
+   unmodified over a DTN-based network" (Section 3.11 of [RFC4838]).
+   HTTP over BP is that common method for HTTP: the protocol beneath the
+   web, most application programming interfaces, and most streaming
+   media.  With it, the large body of existing HTTP clients, servers,
+   tools, and libraries can be used across bundle networks without being
+   rewritten.
+
+   A gateway does more than translate between transports.  HTTP's own
+   means of coping with an expensive path work at the application layer,
+   where only an intermediary can apply them: a client-side gateway
+   answers what it can from its cache, collapses identical requests into
+   one, and revalidates stored responses with conditional requests that
+   cost little when nothing has changed (Section 10.1).  Content can
+   also be placed on the near side of a bundle network in advance, so
+   that only cache fill crosses it.  [RFC3135] describes such a device
+   as an application layer performance enhancing proxy, with "the same
+   functionality as the corresponding regular proxy for the same
+   application (e.g., relay MTA or Web caching proxy) but extended with
+   link-specific optimizations of the application protocol operation".
+
+   The design assumes disruption, not necessarily delay.  On a bundle
+   path with low latency the mechanisms described here for tolerating
+   delay never engage: responses arrive before any client notices, and a
+   gateway pair behaves as an ordinary caching reverse proxy.
+
+3.2.  BP-Native HTTP
+
+   An application on a BP node, such as software on a spacecraft or a
+   surface asset, can act as an HTTP client by sending requests over BP
+   itself, with no IP stack and no client-side gateway.  It can reach an
+   origin server on the Internet through an origin-side gateway:
+
+   +------------------+                                      +--------+
+   |                  |<=============== HTTP ===============>|        |
+   |                  |                                      |        |
+   |                  |                 +-------------+      |        |
+   | BP-native client |<--------------->| origin-side |<---->| origin |
+   |                  |       BP        |   gateway   |  IP  | server |
+   +------------------+                 +-------------+      +--------+
+
+                     Figure 2: A BP-Native HTTP Client
+
+   An application can likewise act as an origin server directly over BP,
+   publishing resources that clients on the Internet reach through a
+   client-side gateway, and a BP-native client can reach a BP-native
+   origin server with no gateway at all.  Such applications use HTTP's
+   methods, status codes, caching, and media types, and existing HTTP
+   libraries for constructing and parsing messages, rather than defining
+   an application protocol of their own.  A node can choose for itself
+   whether to reach a service over IP, through a gateway, or over BP
+   directly, and the HTTP semantics are the same in each case.
+
+3.3.  Alternatives
+
+   There are other ways to bring HTTP to a bundle network, and each has
+   a cost.
+
+   Application-specific protocols:  Applications can be rewritten to use
+      BP directly, with an application protocol of their own.  This
+      suits purpose-built applications, such as spacecraft operations,
+      but cannot be asked of HTTP software in general.
+
+   End-to-end transport:  TCP/IP or QUIC can be run end to end, either
+      directly across the path or by carrying IP packets in bundles.
+      These transports assume a contemporaneous end-to-end path: they
+      spend round trips establishing and securing a connection,
+      retransmit on short timers, and treat a path that stays silent for
+      long as failed.
+
+   HTTP connections in bundles:  The bytes of an HTTP connection can be
+      carried in bundles [I-D.blanchet-dtn-http-over-bp].  This avoids
+      IP, but inherits the connection's need for reliable, in-order
+      delivery, which BP does not provide.
+
+   Carrying HTTP's messages, rather than its connections, avoids all of
+   these costs.
+
+4.  Architecture
+
+   HTTP is well suited to being carried as individual messages.  Its
+   semantics are defined independently of the protocols that carry them,
+   and have already been mapped onto more than one transport, most
+   recently QUIC [RFC9114].  Each request and each response is a self-
+   contained message.  HTTP already defines the role of intermediaries
+   (Section 3.7 of [RFC9110]), which fields are end to end and which
+   belong to a single connection (Section 7.6.1 of [RFC9110]), and how
+   intermediaries cache [RFC9111].  This document therefore needs to
+   specify little beyond the bundle hop.
+
+4.1.  Roles
 
    The protocol in this document operates between a requester and a
    responder.  A requester is either a client-side gateway or a BP-
@@ -413,7 +433,7 @@ Table of Contents
 
    A single node can act in both roles, for example as a relay between
    two bundle networks, or as a gateway that serves clients in each
-   direction (Section 9.5).
+   direction (Section 10.5).
 
    Gateways are HTTP intermediaries (Section 3.7 of [RFC9110]), and all
    of the requirements that [RFC9110] and [RFC9111] place on
@@ -422,9 +442,9 @@ Table of Contents
    configured as a forward proxy for "http" targets.  In either case it
    terminates the client's HTTP connection, and TLS where used, and an
    origin-side gateway opens its own connection to the origin server.
-   The bundle hop between them is protected with BPSec (Section 11).
+   The bundle hop between them is protected with BPSec (Section 12).
 
-3.2.  Principles
+4.2.  Principles
 
    The mapping rests on four principles.
 
@@ -437,7 +457,7 @@ Table of Contents
       messages on a connection, and others use an explicit identifier
       (Section 7.5 of [RFC9110]).  BP preserves no ordering, so this
       mapping uses an explicit correlation identifier carried in an
-      envelope around the HTTP message (Section 5.1).
+      envelope around the HTTP message (Section 6.1).
 
    No sequencing:  No sequence numbers, acknowledgements, or
       retransmission state exist at this layer.  Reordering is harmless
@@ -452,13 +472,13 @@ Table of Contents
       gateways and between origin-side gateways and origin servers.
       HTTP semantics are end to end; HTTP connections are not.
 
-4.  Endpoints and Addressing
+5.  Endpoints and Addressing
 
-4.1.  Responder Endpoint
+5.1.  Responder Endpoint
 
    A responder receives request ADUs at an endpoint registered for this
    service.  The well-known endpoint is ipn-scheme service number TBD1
-   (Section 12.1) at the responder's node; for example,
+   (Section 13.1) at the responder's node; for example,
    ipn:977000.100.TBD1 is the responder endpoint of node 100 under
    allocator 977000 [RFC9758].
 
@@ -469,9 +489,9 @@ Table of Contents
 
    A requester MUST address each request bundle to a singleton endpoint,
    because it relies on the response bundle being sourced from the same
-   endpoint (Section 6.4).
+   endpoint (Section 7.4).
 
-4.2.  Requester Endpoint
+5.2.  Requester Endpoint
 
    A requester sends each request bundle from a singleton endpoint at
    which it is registered, and receives the responses at that endpoint.
@@ -482,9 +502,9 @@ Table of Contents
    The requester's endpoint need not be the well-known service endpoint.
    A node that acts as both requester and responder MAY use one endpoint
    for both roles: the direction of each ADU is given by the Binary HTTP
-   framing indicator (Section 5.5).
+   framing indicator (Section 6.5).
 
-4.3.  Selecting a Responder
+5.3.  Selecting a Responder
 
    To send a request, a requester maps the authority component of the
    target URI to the EID of a responder.  The mapping can come from
@@ -499,7 +519,7 @@ Table of Contents
    *  The integrity of the mapping MUST be protected, since an attacker
       who can alter it can direct requests, and the responses that
       populate a shared cache, to a responder of its choosing
-      (Section 11).
+      (Section 12).
 
    *  A name with local scope, such as a single-label name or one under
       a special-use domain, MUST NOT be resolved using global resolution
@@ -510,9 +530,9 @@ Table of Contents
    with 502 (Bad Gateway) and a Proxy-Status field [RFC9209] with the
    error type "destination_not_found".
 
-5.  ADU Format
+6.  ADU Format
 
-5.1.  Structure
+6.1.  Structure
 
    Each ADU consists of exactly one CBOR [RFC8949] data item: an array
    of four elements.
@@ -548,7 +568,7 @@ Table of Contents
    formed CBOR, that does not match Figure 4, that contains a duplicate
    map key, or that has trailing data.
 
-5.2.  Version
+6.2.  Version
 
    The version element identifies the format of the remainder of the
    ADU; this document specifies version 1.  A receiver MUST discard,
@@ -556,7 +576,7 @@ Table of Contents
    version sits outside the structure it versions, so that a future
    version can change any other element.
 
-5.3.  Correlation Identifier
+6.3.  Correlation Identifier
 
    The correlation identifier associates a response with its request.
    The requester generates it; the responder treats it as opaque and
@@ -564,15 +584,15 @@ Table of Contents
 
    A requester MUST NOT use a correlation identifier that is already in
    use for another outstanding exchange from the same requester
-   endpoint, except when retrying a request (Section 6.1).  Identifiers
+   endpoint, except when retrying a request (Section 7.1).  Identifiers
    SHOULD be at least 16 bytes long and generated by a cryptographically
    secure random number generator, so that an attacker cannot predict
-   them (Section 11).  A requester MAY instead encode its own state in
+   them (Section 12).  A requester MAY instead encode its own state in
    the identifier, for example an authenticated token that lets it
    process responses without retaining per-exchange state, provided the
    result is equally unpredictable.
 
-5.4.  Options
+6.4.  Options
 
    The options element is a map of integer keys to values, carrying
    metadata about the exchange that is not part of the HTTP message.
@@ -597,26 +617,26 @@ Table of Contents
 
    Key 0 is reserved.  The options defined by this document are listed
    in Table 1; further options are registered as described in
-   Section 12.2.
+   Section 13.2.
 
       +=====+===============+===========+==========+===============+
       | Key | Name          | Used in   | Value    | Reference     |
       +=====+===============+===========+==========+===============+
-      |   1 | service-time  | Responses | dtn-time | Section 5.4.1 |
+      |   1 | service-time  | Responses | dtn-time | Section 6.4.1 |
       +-----+---------------+-----------+----------+---------------+
-      |   2 | respond-by    | Requests  | dtn-time | Section 5.4.2 |
+      |   2 | respond-by    | Requests  | dtn-time | Section 6.4.2 |
       +-----+---------------+-----------+----------+---------------+
-      |   3 | incremental   | Requests  | true     | Section 7.1   |
+      |   3 | incremental   | Requests  | true     | Section 8.1   |
       +-----+---------------+-----------+----------+---------------+
-      |   4 | final-segment | Responses | true     | Section 7.2   |
+      |   4 | final-segment | Responses | true     | Section 8.2   |
       +-----+---------------+-----------+----------+---------------+
-      |  -1 | segment       | Requests, | uint     | Section 7.2   |
+      |  -1 | segment       | Requests, | uint     | Section 8.2   |
       |     |               | responses |          |               |
       +-----+---------------+-----------+----------+---------------+
 
                 Table 1: Options Defined by This Document
 
-5.4.1.  service-time
+6.4.1.  service-time
 
    The service-time option carries the DTN time (Section 4.2.6 of
    [RFC9171]) at which the responder generated the response: for an
@@ -628,16 +648,16 @@ Table of Contents
    A responder whose clock is accurate, in the sense of [RFC9171],
    SHOULD include the service-time option in every response ADU.  A
    responder without an accurate clock MUST NOT include it.  Requesters
-   use the option to calculate the age of a response (Section 9.2).
+   use the option to calculate the age of a response (Section 10.2).
 
-5.4.2.  respond-by
+6.4.2.  respond-by
 
    The respond-by option carries the DTN time after which the requester
    will no longer use a response to the request.  A requester whose
    clock is accurate SHOULD include the respond-by option in every
    request ADU.  It matters most in requests whose method is not
    idempotent, since it also bounds the period over which a replayed
-   request could be acted upon (Section 11.7).
+   request could be acted upon (Section 12.7).
 
    A responder that has an accurate clock and receives a request ADU
    after its respond-by time has passed SHOULD discard it without
@@ -645,7 +665,7 @@ Table of Contents
    lifetime that extends beyond the respond-by time of the request it
    answers, and SHOULD NOT send a response ADU after that time.
 
-5.5.  HTTP Message
+6.5.  HTTP Message
 
    The message element contains one Binary HTTP message [RFC9292].  A
    sender MUST use the known-length format: framing indicator 0 for a
@@ -675,9 +695,9 @@ Table of Contents
 
    Messages MAY carry trailer fields, and MAY be padded (Section 3.8 of
    [RFC9292]).  Padding obscures message length only when the ADU is
-   also encrypted (Section 11.10).
+   also encrypted (Section 12.10).
 
-5.6.  Field Handling
+6.6.  Field Handling
 
    No HTTP connection spans the bundle hop, so fields that describe a
    connection have nothing to apply to.  Before encoding a message, the
@@ -709,28 +729,28 @@ Table of Contents
    to the response.  Gateways SHOULD use a pseudonym rather than a host
    name as the received-by value, as Section 7.6.3 of [RFC9110] permits.
 
-      Editor's note: the received-protocol that an origin-side gateway
-      records for a request received over BP is an open issue
-      (Appendix C).
+
+   // The received-protocol that an origin-side gateway records for a
+   // request received over BP is an open issue (Appendix C).
 
    A responder with a clock that receives a response without a Date
    header field from an origin server MUST add one before encoding the
    response, as Section 6.6.1 of [RFC9110] requires of any recipient
    that forwards such a response.
 
-6.  Exchange Procedures
+7.  Exchange Procedures
 
-6.1.  Sending a Request
+7.1.  Sending a Request
 
    To send a request, a requester:
 
-   1.  selects a responder for the target URI (Section 4.3);
+   1.  selects a responder for the target URI (Section 5.3);
 
-   2.  constructs the request message as specified in Section 5.5 and
-       Section 5.6;
+   2.  constructs the request message as specified in Section 6.5 and
+       Section 6.6;
 
-   3.  generates a correlation identifier (Section 5.3) and constructs
-       the request ADU, including the respond-by option (Section 5.4.2)
+   3.  generates a correlation identifier (Section 6.3) and constructs
+       the request ADU, including the respond-by option (Section 6.4.2)
        where it has an accurate clock;
 
    4.  requests transmission of a bundle whose payload is the request
@@ -738,7 +758,7 @@ Table of Contents
        source is the requester endpoint (Section 5.2 of [RFC9171]); and
 
    5.  records the exchange: its correlation identifier, the responder
-       endpoint to which it was sent, and its deadline (Section 6.5).
+       endpoint to which it was sent, and its deadline (Section 7.5).
 
    Each request ADU is sent in a bundle of its own.  A requester MUST
    NOT place more than one ADU in a bundle.  The BPA may fragment the
@@ -750,7 +770,7 @@ Table of Contents
    and no longer than the period during which the request remains
    useful.  A requester MAY request bundle deletion status reports
    (Section 6.1.1 of [RFC9171]) so that it can detect failure early
-   (Section 6.5); it SHOULD NOT request other status reports, except for
+   (Section 7.5); it SHOULD NOT request other status reports, except for
    diagnostics, because each report adds traffic to the bundle network.
 
    A requester MUST NOT automatically retry a request whose method is
@@ -761,12 +781,12 @@ Table of Contents
    response to either attempt completes the exchange and a response to
    the other is discarded as a duplicate.
 
-6.2.  Processing a Request
+7.2.  Processing a Request
 
    When an ADU is delivered to a responder (Section 5.7 of [RFC9171]),
    the responder MUST discard it, without responding, if:
 
-   *  the ADU is not valid as specified in Section 5.1, or has an
+   *  the ADU is not valid as specified in Section 6.1, or has an
       unsupported version;
 
    *  its message is a response;
@@ -777,10 +797,10 @@ Table of Contents
    *  the bundle's "ADU is an administrative record" flag is set.
 
    If the message is not a valid Binary HTTP message (Section 4 of
-   [RFC9292]) or is malformed as described in Section 5.5, the responder
+   [RFC9292]) or is malformed as described in Section 6.5, the responder
    SHOULD respond with 400 (Bad Request).  If the request contains a
    critical option the responder does not understand, it proceeds as
-   specified in Section 5.4.
+   specified in Section 6.4.
 
    Otherwise the responder handles the request.  A BP-native origin
    server handles it as an origin server would.  An origin-side gateway
@@ -788,10 +808,10 @@ Table of Contents
    [RFC9110]): it identifies the origin from the target URI, establishes
    a connection, verifying the server's certificate for an "https"
    target as Section 4.3.4 of [RFC9110] requires, applies the field
-   handling of Section 5.6, and sends the request.  A responder that has
+   handling of Section 6.6, and sends the request.  A responder that has
    a cache MAY answer from a stored response under the rules of
    [RFC9111].  An origin-side gateway SHOULD apply a policy that
-   restricts the destinations it will contact (Section 11.6).
+   restricts the destinations it will contact (Section 12.6).
 
    A responder can receive the same request more than once: BP can
    duplicate bundles, and a requester can retry a request with its
@@ -802,10 +822,10 @@ Table of Contents
    processing the request again, re-send the response it gave to the
    first copy, or nothing if that response is not yet complete.  A
    responder that does so SHOULD retain its record of each exchange at
-   least until the request's respond-by time (Section 5.4.2), or for a
+   least until the request's respond-by time (Section 6.4.2), or for a
    configured period where respond-by is absent.
 
-6.3.  Sending a Response
+7.3.  Sending a Response
 
    To answer a request, the responder constructs a response ADU with:
 
@@ -814,20 +834,20 @@ Table of Contents
    *  the correlation identifier copied, unchanged, from the request
       ADU;
 
-   *  the service-time option (Section 5.4.1), if its clock is accurate,
+   *  the service-time option (Section 6.4.1), if its clock is accurate,
       and any other options that apply; and
 
-   *  the final response, encoded as specified in Section 5.5 and
-      Section 5.6.
+   *  the final response, encoded as specified in Section 6.5 and
+      Section 6.6.
 
    It requests transmission of a bundle whose payload is the response
    ADU, whose destination is the source node ID of the request bundle,
    and whose source is the endpoint to which the request bundle was
    addressed.  The lifetime of the response bundle MUST NOT extend
-   beyond the request's respond-by time, if present (Section 5.4.2).
+   beyond the request's respond-by time, if present (Section 6.4.2).
 
    A responder sends one response ADU for each request it processes,
-   except as specified in Section 7.
+   except as specified in Section 8.
 
    When an origin-side gateway cannot complete the exchange with the
    origin server, it responds with an error response such as 502 (Bad
@@ -836,9 +856,9 @@ Table of Contents
    "dns_error", "connection_refused", "connection_timeout",
    "tls_certificate_error", or "http_response_timeout".  Clients can
    then distinguish a failure beyond the origin-side gateway from a
-   failure in the bundle network (Section 6.5).
+   failure in the bundle network (Section 7.5).
 
-6.4.  Receiving a Response
+7.4.  Receiving a Response
 
    When an ADU whose message is a response is delivered to a requester,
    the requester MUST discard it unless both:
@@ -852,23 +872,23 @@ Table of Contents
    This check is the requester's defence against forged responses, which
    could otherwise poison a shared cache for every client of the
    gateway; its strength depends on the authentication of the bundle's
-   source (Section 11.3).
+   source (Section 12.3).
 
    A requester MUST discard a response ADU for an exchange that has
-   already completed, except as specified in Section 7.  Otherwise, the
+   already completed, except as specified in Section 8.  Otherwise, the
    response completes the exchange.  The requester processes the
    response as an HTTP intermediary or client would: a client-side
-   gateway applies the field handling of Section 5.6, calculates the
-   response's age (Section 9.2), stores it if permitted (Section 9.1),
+   gateway applies the field handling of Section 6.6, calculates the
+   response's age (Section 10.2), stores it if permitted (Section 10.1),
    and forwards it to the client, or retains it for the client to
-   collect (Section 9.3).
+   collect (Section 10.3).
 
    A requester MAY retain an exchange after its deadline has passed, so
    that a late response to a safe request can still be stored in its
    cache.  Such a response is subject to the same admission check as any
    other.
 
-6.5.  Deadlines and Failure
+7.5.  Deadlines and Failure
 
    A requester assigns each exchange a deadline, after which, if no
    response has been received, the exchange has failed.  The deadline
@@ -884,7 +904,7 @@ Table of Contents
    [RFC9171]) asserting that the request bundle was deleted MAY fail the
    exchange immediately.  A client-side gateway that does so SHOULD
    answer with 504 (Gateway Timeout) and a Proxy-Status field with the
-   error type "bp_bundle_deleted" (Section 12.3), whose "bp-reason"
+   error type "bp_bundle_deleted" (Section 13.3), whose "bp-reason"
    parameter carries the reason code from the status report.
 
    As with any 504 response, the failure of an exchange does not show
@@ -896,9 +916,9 @@ Table of Contents
    repeated client requests do not send a stream of bundles toward an
    unreachable responder.
 
-7.  Extended Exchanges
+8.  Extended Exchanges
 
-7.1.  Incremental Responses
+8.1.  Incremental Responses
 
    Some responses are produced slowly: an origin server sends the header
    section promptly, then content over an extended period.  No responder
@@ -947,12 +967,13 @@ Table of Contents
    exchange and MUST NOT treat the content received so far as a complete
    representation.
 
-      Editor's note: an origin-side gateway might need to supply a
-      strong validator for a response that has none.  Whether, and how,
-      it should do so without creating a validator the origin server
-      would not recognise is an open issue (Appendix C).
 
-7.2.  Event Streams
+   // An origin-side gateway might need to supply a strong validator for
+   // a response that has none.  Whether, and how, it should do so
+   // without creating a validator the origin server would not recognise
+   // is an open issue (Appendix C).
+
+8.2.  Event Streams
 
    An event stream (the text/event-stream media type [HTML]) has no end,
    so it can be carried neither as a single response nor as a finite
@@ -962,13 +983,14 @@ Table of Contents
    received.  This document carries an event stream as a sequence of
    finite segments.
 
-      Editor's note: this section is less mature than the rest of the
-      document, and could move to a companion document.
+
+   // This section is less mature than the rest of the document, and
+   // could move to a companion document.
 
    To request segment K of an event stream, a requester sends a GET
    request for the stream's target URI with the segment option (key -1)
    set to K.  The option is critical, so a responder that does not
-   support segments refuses the request (Section 5.4) instead of opening
+   support segments refuses the request (Section 6.4) instead of opening
    a response that never ends.
 
    An origin-side gateway that supports segments:
@@ -1009,7 +1031,7 @@ Table of Contents
    boundaries; such types do not identify themselves, so a gateway would
    need configuration to recognise them.
 
-8.  Unsupported HTTP Features
+9.  Unsupported HTTP Features
 
    The CONNECT method (Section 9.3.6 of [RFC9110]) establishes a tunnel
    whose contents are interactive and opaque to HTTP.  A requester MUST
@@ -1026,16 +1048,16 @@ Table of Contents
    response that the client did not ask for.
 
    Applications that need messages in both directions can use an event
-   stream for one direction (Section 7.2) and individual requests for
+   stream for one direction (Section 8.2) and individual requests for
    the other.
 
-9.  Gateway Considerations
+10.  Gateway Considerations
 
    This section gives requirements and guidance for gateways.  None of
    it affects the format of ADUs or the exchange procedures, and
    gateways that make different choices interoperate.
 
-9.1.  Caching
+10.1.  Caching
 
    Much of the value of a client-side gateway lies in its cache: every
    request it answers locally is one that does not cross the bundle
@@ -1094,7 +1116,7 @@ Table of Contents
       allowed.  Pacing never extends the circumstances in which a stored
       response may be served.
 
-9.2.  Calculating Age
+10.2.  Calculating Age
 
    A requester that stores or forwards a response calculates its age as
    Section 4.2.3 of [RFC9111] specifies.  That calculation's
@@ -1107,7 +1129,7 @@ Table of Contents
    halves the usable lifetime on a symmetric path, and on a long-delay
    path can make every response stale on arrival.
 
-   When a response ADU carries the service-time option (Section 5.4.1)
+   When a response ADU carries the service-time option (Section 6.4.1)
    and the requester's clock is accurate, the requester can measure the
    time the response actually spent in transit:
 
@@ -1130,7 +1152,7 @@ Table of Contents
    cannot know whether an origin server's clock is synchronised.  The
    service-time option is generated by the responder, a BP node that is
    expected to keep accurate time, and is covered by the same integrity
-   protection as the rest of the ADU (Section 11.8).
+   protection as the rest of the ADU (Section 12.8).
 
    If service_time is later than response_time by more than a configured
    tolerance, the two clocks are not adequately synchronised, and the
@@ -1139,7 +1161,7 @@ Table of Contents
    that would conceal the transit delay that the Age field exists to
    disclose.
 
-9.3.  Responding to Clients During an Exchange
+10.3.  Responding to Clients During an Exchange
 
    A client expects a timely response, but over a long-delay path an
    exchange can outlast the client's patience.  How a client-side
@@ -1183,24 +1205,24 @@ Table of Contents
    [I-D.ietf-httpbis-resumable-upload], each step being an ordinary
    exchange.
 
-9.4.  Ordering
+10.4.  Ordering
 
-   No ordering is provided between exchanges (Section 3.2).  Two unsafe
+   No ordering is provided between exchanges (Section 4.2).  Two unsafe
    requests sent in succession can reach the origin server in either
    order.  A client that needs one request to be processed after another
    has to wait for the response to the first before sending the second.
 
-9.5.  Chained Gateways
+10.5.  Chained Gateways
 
    A node can act as both responder and requester, receiving requests
    over one bundle network and forwarding them over another.  Each such
    node is an intermediary in its own right, and records itself in the
-   Via field (Section 5.6).  A misconfigured chain can form a loop; a
+   Via field (Section 6.6).  A misconfigured chain can form a loop; a
    gateway SHOULD detect loops, using its Via entries or the CDN-Loop
    field [RFC8586], and respond with 502 (Bad Gateway) and a Proxy-
    Status field with the error type "proxy_loop_detected".
 
-10.  Operational Considerations
+11.  Operational Considerations
 
    Lifetimes and deadlines:  Bundle lifetimes, respond-by times, and
       exchange deadlines need to match the latency of the path.  Contact
@@ -1211,7 +1233,7 @@ Table of Contents
    Clocks:  The service-time and respond-by options are useful only
       between nodes whose clocks are accurate.  BP nodes generally keep
       accurate time, but a deployment with clockless nodes relies on the
-      Bundle Age block for age calculation (Section 9.2) and on bundle
+      Bundle Age block for age calculation (Section 10.2) and on bundle
       lifetimes alone to bound exchanges.
 
    Message size:  Each HTTP message is a single ADU, carried and if
@@ -1238,9 +1260,9 @@ Table of Contents
       ordinary caching reverse proxy.  Nothing in the mapping needs to
       be configured differently.
 
-11.  Security Considerations
+12.  Security Considerations
 
-11.1.  Trust Model
+12.1.  Trust Model
 
    TLS terminates at the gateways, so there is no end-to-end TLS between
    client and origin server.  A client entrusts the client-side gateway
@@ -1256,13 +1278,13 @@ Table of Contents
 
    Between BP-native endpoints, and between a BP-native endpoint and a
    gateway, there is no TLS at all: BPSec is the only protection on the
-   bundle hop (Section 11.2), and the authenticated source of a bundle
+   bundle hop (Section 12.2), and the authenticated source of a bundle
    takes the place of the TLS server identity.  A BP-native client
-   trusts the responder it has selected for an authority (Section 4.3)
+   trusts the responder it has selected for an authority (Section 5.3)
    as it would trust an origin server whose certificate it had verified,
    and needs that selection to be equally well protected.
 
-11.2.  Protecting the Bundle Hop
+12.2.  Protecting the Bundle Hop
 
    Requesters and responders MUST support BPSec [RFC9172] with the
    default security contexts [RFC9173], and SHOULD protect every ADU
@@ -1276,32 +1298,32 @@ Table of Contents
    deployment that relies on protection at another layer should document
    that dependency.
 
-11.3.  Response Admission and Cache Poisoning
+12.3.  Response Admission and Cache Poisoning
 
    A requester accepts a response only for an outstanding exchange, and
-   only from the endpoint to which it sent the request (Section 6.4).
+   only from the endpoint to which it sent the request (Section 7.4).
    Where the source of the bundle is authenticated, no third party can
    inject a response.  A forged response accepted by a client-side
    gateway could otherwise be stored in its shared cache and served to
    every client.  The parts of an incremental response must also share a
-   strong validator (Section 7.1).
+   strong validator (Section 8.1).
 
-11.4.  Resolution Integrity
+12.4.  Resolution Integrity
 
    Response admission is only as strong as the mapping from authority to
-   responder (Section 4.3).  An attacker that can alter the mapping can
+   responder (Section 5.3).  An attacker that can alter the mapping can
    direct requests, and the responses that populate a shared cache, to a
    responder of its choosing.  Mappings obtained from DNS need to be
    validated with DNSSEC; where that is not possible, mappings need to
    be configured or pinned.
 
-11.5.  Correlation Identifiers
+12.5.  Correlation Identifiers
 
-   Unpredictable correlation identifiers (Section 5.3) make blind
+   Unpredictable correlation identifiers (Section 6.3) make blind
    injection of responses harder where the bundle hop is not protected.
    They are not a substitute for BPSec.
 
-11.6.  Server-Side Request Forgery
+12.6.  Server-Side Request Forgery
 
    An origin-side gateway fetches whatever a request names, which makes
    it a means of reaching hosts on its own network.  An origin-side
@@ -1312,28 +1334,28 @@ Table of Contents
    that names resolve to, not only to literal addresses in the target
    URI.
 
-11.7.  Replay
+12.7.  Replay
 
    The default security contexts of BPSec [RFC9173] do not prevent
    replay.  A replayed request bundle carrying an unsafe request could
    cause the request to be acted on again.  The responder's detection of
-   duplicate requests (Section 6.2) suppresses replays while its records
-   are retained, and the respond-by option (Section 5.4.2), which the
+   duplicate requests (Section 7.2) suppresses replays while its records
+   are retained, and the respond-by option (Section 6.4.2), which the
    BIB protects, lets a responder reject requests after that time.
    Together, these bound the window in which a replay can have any
    effect.  A requester SHOULD include respond-by in every request whose
    method is not idempotent.
 
-11.8.  Timing Integrity
+12.8.  Timing Integrity
 
    The service-time option determines the age that a requester computes
    for a response, and so how long the response is served.  An attacker
    that could alter it could make a response appear fresher, or more
    stale, than it is.  The option is protected by the BIB along with the
    rest of the ADU, and a requester applies a tolerance check before
-   using it (Section 9.2).
+   using it (Section 10.2).
 
-11.9.  Resource Exhaustion
+12.9.  Resource Exhaustion
 
    A small request can elicit a large response, and an incremental
    response or an event stream can elicit a long sequence of them.
@@ -1343,22 +1365,22 @@ Table of Contents
    for bundle status reports add traffic to the bundle network and
    should be limited accordingly.
 
-11.10.  Credentials and Privacy
+12.10.  Credentials and Privacy
 
    Authorization and Cookie fields cross the bundle network inside ADUs
    and need the confidentiality that a BCB provides.  Client
    certificates are verified at the client-side gateway and never
-   forwarded (Section 5.6).  A shared cache does not store responses to
+   forwarded (Section 6.6).  A shared cache does not store responses to
    requests with Authorization fields unless the origin server permits
    it (Section 3.5 of [RFC9111]), and gateways do not collapse requests
-   made with different credentials (Section 9.1).  Via pseudonyms
-   (Section 5.6) avoid disclosing the topology of gateway deployments.
-   Padding Binary HTTP messages (Section 5.5) can obscure their lengths
+   made with different credentials (Section 10.1).  Via pseudonyms
+   (Section 6.6) avoid disclosing the topology of gateway deployments.
+   Padding Binary HTTP messages (Section 6.5) can obscure their lengths
    from an observer when the ADU is encrypted.
 
-12.  IANA Considerations
+13.  IANA Considerations
 
-12.1.  Well-Known Service Number
+13.1.  Well-Known Service Number
 
    This document requests that IANA register the following entry in the
    "'ipn' Scheme URI Well-Known Service Numbers for BPv7" registry
@@ -1373,16 +1395,16 @@ Table of Contents
 
       Table 2: Service Number Registration
 
-   RFC Editor: please replace TBD1 throughout this document with the
-   value assigned by IANA, and remove this note.
+      |  RFC Editor: please replace TBD1 throughout this document with
+      |  the value assigned by IANA, and remove this note.
 
-12.2.  HTTP over BP Options Registry
+13.2.  HTTP over BP Options Registry
 
    This document requests that IANA create a new registry titled "HTTP
    over BP Options".  Each entry records:
 
    Key:  An integer.  Negative keys denote critical options and non-
-      negative keys elective options (Section 5.4).
+      negative keys elective options (Section 6.4).
 
    Name:  A short descriptive name.
 
@@ -1411,7 +1433,7 @@ Table of Contents
    with this document as the reference, together with key 0, marked
    "Reserved".
 
-12.3.  HTTP Proxy Error Type
+13.3.  HTTP Proxy Error Type
 
    This document requests that IANA register the following entry in the
    "HTTP Proxy Error Types" registry established by [RFC9209]:
@@ -1432,9 +1454,9 @@ Table of Contents
 
    Reference:  (this document)
 
-13.  References
+14.  References
 
-13.1.  Normative References
+14.1.  Normative References
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -1491,7 +1513,7 @@ Table of Contents
               Scheme", RFC 9758, DOI 10.17487/RFC9758, May 2025,
               <https://www.rfc-editor.org/rfc/rfc9758>.
 
-13.2.  Informative References
+14.2.  Informative References
 
    [FETCH-METADATA]
               W3C, "Fetch Metadata Request Headers",
@@ -1735,7 +1757,7 @@ A.3.  Age
    The response is delivered to the client-side gateway at 12:20:00.250.
    The response carries no Age field, so age_value is 0.
 
-   Using the service-time option (Section 9.2), transit_delay is 1200
+   Using the service-time option (Section 10.2), transit_delay is 1200
    seconds, so the response's age on arrival is 1200 seconds and it
    remains fresh for a further 2400 seconds.
 
@@ -1779,7 +1801,7 @@ Appendix B.  Design Rationale
 
 Appendix C.  Open Issues
 
-   RFC Editor: please remove this appendix before publication.
+   This section is to be removed before publishing as an RFC.
 
    *  Via received-protocol: which received-protocol an origin-side
       gateway should record for a request received over BP.  Candidates
@@ -1808,11 +1830,11 @@ Appendix C.  Open Issues
       and which security contexts implementations must support.
 
    *  Age calculation: substituting transit_delay for response_delay
-      (Section 9.2) relaxes a requirement of Section 4.2.3 of [RFC9111],
-      which says a cache "MUST interpret this value relative to the time
-      the request was initiated".  Whether this document needs to update
-      RFC 9111, or can justify the calculation in some other way, needs
-      review by HTTP caching experts.
+      (Section 10.2) relaxes a requirement of Section 4.2.3 of
+      [RFC9111], which says a cache "MUST interpret this value relative
+      to the time the request was initiated".  Whether this document
+      needs to update RFC 9111, or can justify the calculation in some
+      other way, needs review by HTTP caching experts.
 
    *  Media type: whether ADUs need a media type for storage or for
       transport outside BP.
