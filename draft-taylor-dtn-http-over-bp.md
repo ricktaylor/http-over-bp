@@ -142,7 +142,7 @@ Other application protocols:
 
 {::boilerplate bcp14-tagged}
 
-This document uses the terms "bundle", "application data unit (ADU)", "bundle protocol agent (BPA)", "endpoint ID (EID)", "node ID", "lifetime", "creation timestamp", and "bundle age" from {{RFC9171}}; the terms "intermediary", "gateway", "origin server", "user agent", "target URI", "safe", and "idempotent" from {{RFC9110}}; and the terms "shared cache", "stored response", "fresh", and "stale" from {{RFC9111}}. Data structures are described using the Concise Data Definition Language (CDDL) {{RFC8610}}.
+This document uses the terms "bundle", "application data unit (ADU)", "bundle protocol agent (BPA)", "endpoint ID (EID)", "lifetime", "creation timestamp", and "bundle age" from {{RFC9171}}; the terms "intermediary", "gateway", "origin server", "user agent", "target URI", "safe", and "idempotent" from {{RFC9110}}; and the terms "shared cache", "stored response", "fresh", and "stale" from {{RFC9111}}. Data structures are described using the Concise Data Definition Language (CDDL) {{RFC8610}}.
 
 Requester:
 : A BP node that sends HTTP requests over BP as specified in this document and receives the corresponding responses. A requester is either a client-side gateway or a BP-native HTTP client.
@@ -418,7 +418,7 @@ Otherwise the responder handles the request. A BP-native origin server handles i
 
 A request bundle that expires before it is delivered is deleted by the BPA ({{Section 5.5 of RFC9171}}), so a responder does not process a request after its requester has stopped waiting for the response. A responder MAY also discard, without processing, a request that it estimates cannot be answered before the request bundle expires, for example from a contact plan.
 
-A responder can receive the same request more than once: BP can duplicate bundles, and a requester can retry a request with its original correlation identifier. Re-executing a request whose method is not idempotent could repeat its effect. For such requests, a responder SHOULD recognise a duplicate by the source of the request bundle together with its correlation identifier and, rather than processing the request again, re-send the response it gave to the first copy, or nothing if that response is not yet complete. A responder that does so SHOULD retain its record of each exchange at least until the latest expiry of any request bundle it has received for that exchange ({{bundle-times}}).
+A responder can receive the same request more than once: BP can duplicate bundles, and a requester can retry a request with its original correlation identifier. Re-executing a request whose method is not idempotent could repeat its effect. For such requests, a responder SHOULD recognise a duplicate by the source EID of the request bundle together with its correlation identifier and, rather than processing the request again, re-send the response it gave to the first copy, or nothing if that response is not yet complete. A responder that does so SHOULD retain its record of each exchange at least until the latest expiry of any request bundle it has received for that exchange ({{bundle-times}}).
 
 ## Sending a Response {#sending-response}
 
@@ -429,7 +429,7 @@ To answer a request, the responder constructs a response ADU with:
 - any options that apply; and
 - the final response, encoded as specified in {{message}} and {{fields}}.
 
-It requests transmission of a bundle whose payload is the response ADU, whose destination is the source node ID of the request bundle, and whose source is the endpoint to which the request bundle was addressed. The responder MUST set the lifetime of the response bundle so that it expires no later than the request bundle ({{bundle-times}}), and SHOULD NOT send a response ADU after the request bundle has expired.
+It requests transmission of a bundle whose payload is the response ADU, whose destination EID is the source EID of the request bundle, and whose source EID is the destination EID of the request bundle. The responder MUST set the lifetime of the response bundle so that it expires no later than the request bundle ({{bundle-times}}), and SHOULD NOT send a response ADU after the request bundle has expired.
 
 A responder sends one response ADU for each request it processes, except as specified in {{extended}}.
 
@@ -615,7 +615,7 @@ Integrity of the primary block:
 : The BCB's security context SHOULD include the primary block in its additional authenticated data, so that the primary block, which a BCB cannot conceal, is bound to the ADU. The primary block carries the source of the bundle, on which response admission depends, and its creation timestamp and lifetime, which bound the exchange.
 
 Authentication of the source:
-: Integrity alone does not show who produced the bundle. Where a BCB is keyed so that only the two peers could have produced it, for example with a key shared between them or with key agreement between their static keys, the BCB also authenticates the source of the bundle. Where it is not, for example when the key is agreed using an ephemeral key of the sender's and the recipient's public key alone, anyone who knows the recipient's public key can produce a valid BCB, with any source in its primary block. A sender SHOULD then also protect the payload with a Block Integrity Block (BIB) that is signed with a key bound to its node ID, and that the BCB also encrypts ({{Section 3.9 of RFC9172}}). A recipient MUST NOT treat the source of a bundle as authenticated unless one of these conditions holds.
+: Integrity alone does not show who produced the bundle. Where a BCB is keyed so that only the two peers could have produced it, for example with a key shared between them or with key agreement between their static keys, the BCB also authenticates the source of the bundle. Where it is not, for example when the key is agreed using an ephemeral key of the sender's and the recipient's public key alone, anyone who knows the recipient's public key can produce a valid BCB, with any source EID in its primary block. A sender SHOULD then also protect the payload with a Block Integrity Block (BIB) that is signed with a key bound to the bundle's source EID, and that the BCB also encrypts ({{Section 3.9 of RFC9172}}). A recipient MUST NOT treat the source of a bundle as authenticated unless one of these conditions holds.
 
 Without BPSec, an attacker on the path can read requests and responses, including credentials, and can forge responses. A deployment that relies on protection at another layer should document that dependency.
 
