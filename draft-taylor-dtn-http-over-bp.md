@@ -144,6 +144,8 @@ Other application protocols:
 
 This document uses the terms "bundle", "application data unit (ADU)", "bundle protocol agent (BPA)", "endpoint ID (EID)", "lifetime", "creation timestamp", and "bundle age" from {{RFC9171}}; the terms "intermediary", "gateway", "origin server", "user agent", "target URI", "safe", and "idempotent" from {{RFC9110}}; and the terms "shared cache", "stored response", "fresh", and "stale" from {{RFC9111}}. Data structures are described using the Concise Data Definition Language (CDDL) {{RFC8610}}.
 
+In this document, the source EID of a bundle is the EID carried in the Source node ID field of its primary block, and its destination EID is the EID carried in its Destination EID field ({{Section 4.3.1 of RFC9171}}).
+
 Requester:
 : A BP node that sends HTTP requests over BP as specified in this document and receives the corresponding responses. A requester is either a client-side gateway or a BP-native HTTP client.
 
