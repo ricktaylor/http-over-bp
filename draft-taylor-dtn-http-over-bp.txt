@@ -260,6 +260,11 @@ Table of Contents
    structures are described using the Concise Data Definition Language
    (CDDL) [RFC8610].
 
+   In this document, the source EID of a bundle is the EID carried in
+   the Source node ID field of its primary block, and its destination
+   EID is the EID carried in its Destination EID field (Section 4.3.1 of
+   [RFC9171]).
+
    Requester:  A BP node that sends HTTP requests over BP as specified
       in this document and receives the corresponding responses.  A
       requester is either a client-side gateway or a BP-native HTTP
