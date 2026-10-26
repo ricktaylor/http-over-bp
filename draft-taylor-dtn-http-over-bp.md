@@ -525,7 +525,7 @@ This section gives requirements and guidance for gateways. None of it affects th
 Much of the value of a client-side gateway lies in its cache: every request it answers locally is one that does not cross the bundle network. A client-side gateway SHOULD act as a shared cache {{RFC9111}}. A BP-native client benefits from a private cache in the same way, and the guidance in this section applies to it as well, except where it concerns shared caches or requests from multiple clients.
 
 Collapsing requests:
-: A client-side gateway SHOULD collapse requests ({{Section 4 of RFC9111}}): when a request could be satisfied by the response to a safe request for which an exchange is already outstanding, the gateway awaits that response instead of starting another exchange. The key on which requests are collapsed MUST distinguish requests made with different credentials, and SHOULD include the request fields to which the response is expected to vary. A gateway MUST NOT collapse unsafe requests.
+: A client-side gateway SHOULD collapse requests ({{Section 4 of RFC9111}}): when a request could be satisfied by the response to a safe request for which an exchange is already outstanding, the gateway awaits that response instead of starting another exchange. The key on which requests are collapsed MUST distinguish requests made with different credentials, whether carried in Authorization or Cookie fields or otherwise, and SHOULD include the request fields to which the response is expected to vary. A gateway MUST NOT collapse unsafe requests.
 
 Validation:
 : When it revalidates a stored response, a gateway SHOULD send a conditional request carrying the stored validators, so that an unchanged resource costs only a small 304 (Not Modified) response ADU. A gateway SHOULD answer a client's conditional request from a stored response wherever {{Section 4.3.2 of RFC9111}} allows, without starting an exchange.
@@ -636,7 +636,7 @@ Unpredictable correlation identifiers ({{correlation}}) make blind injection of 
 
 ## Server-Side Request Forgery {#ssrf}
 
-An origin-side gateway fetches whatever a request names, which makes it a means of reaching hosts on its own network. An origin-side gateway SHOULD refuse, unless configured otherwise, to contact private, loopback, and link-local addresses, including cloud metadata services, and SHOULD support restricting the origins it will contact to a configured set. It needs to apply these checks to the addresses that names resolve to, not only to literal addresses in the target URI.
+An origin-side gateway fetches whatever a request names, which makes it a means of reaching hosts on its own network. An origin-side gateway SHOULD refuse, unless configured otherwise, to contact private, loopback, and link-local addresses, including cloud metadata services, and SHOULD support restricting the origins it will contact to a configured set. It needs to apply these checks to the addresses that names resolve to, not only to literal addresses in the target URI. A gateway that refuses a request because of the address it would contact responds with 502 (Bad Gateway) and a Proxy-Status field {{RFC9209}} with the error type "destination_ip_prohibited"; one that refuses it because the origin is not in its configured set responds with 403 (Forbidden) and the error type "http_request_denied".
 
 ## Replay {#replay}
 
