@@ -42,7 +42,6 @@ normative:
   RFC9111:
   RFC9171:
   RFC9172:
-  RFC9173:
   RFC9209:
   RFC9292:
   RFC9758:
@@ -72,6 +71,7 @@ informative:
   RFC9499:
   RFC9530:
   I-D.blanchet-dtn-http-over-bp:
+  I-D.ietf-dtn-bpsec-cose:
   I-D.ietf-core-coap-bp:
   I-D.ietf-httpapi-idempotency-key-header:
   I-D.ietf-httpapi-ratelimit-headers:
@@ -606,7 +606,18 @@ Between BP-native endpoints, and between a BP-native endpoint and a gateway, the
 
 ## Protecting the Bundle Hop {#protecting-the-bundle-hop}
 
-Requesters and responders MUST support BPSec {{RFC9172}} with the default security contexts {{RFC9173}}, and SHOULD protect every ADU with a Block Integrity Block (BIB) and a Block Confidentiality Block (BCB) targeting the payload block. The BIB SHOULD include the primary block in its integrity scope (the "Include primary block" flag of {{Section 3.3.3 of RFC9173}}), so that the source of the bundle, on which response admission depends, and its creation timestamp and lifetime, which bound the exchange, are authenticated. Without BPSec, an attacker on the path can read requests and responses, including credentials, and can forge responses. A deployment that relies on protection at another layer should document that dependency.
+Requesters and responders MUST support BPSec {{RFC9172}}. This document does not mandate a particular security context; the choice is left to the deployment, for example the COSE context {{I-D.ietf-dtn-bpsec-cose}}. Whatever the context, the protection of each ADU needs to provide three things:
+
+Confidentiality and integrity of the ADU:
+: Every ADU SHOULD be protected by a Block Confidentiality Block (BCB) that targets the payload block. Every BCB security context provides authenticated encryption ({{Section 3.8 of RFC9172}}), so the BCB both conceals the ADU and protects its integrity.
+
+Integrity of the primary block:
+: The BCB's security context SHOULD include the primary block in its additional authenticated data, so that the primary block, which a BCB cannot conceal, is bound to the ADU. The primary block carries the source of the bundle, on which response admission depends, and its creation timestamp and lifetime, which bound the exchange.
+
+Authentication of the source:
+: Integrity alone does not show who produced the bundle. Where a BCB is keyed so that only the two peers could have produced it, for example with a key shared between them or with key agreement between their static keys, the BCB also authenticates the source of the bundle. Where it is not, for example when the key is agreed using an ephemeral key of the sender's and the recipient's public key alone, anyone who knows the recipient's public key can produce a valid BCB, with any source in its primary block. A sender SHOULD then also protect the payload with a Block Integrity Block (BIB) that is signed with a key bound to its node ID, and that the BCB also encrypts ({{Section 3.9 of RFC9172}}). A recipient MUST NOT treat the source of a bundle as authenticated unless one of these conditions holds.
+
+Without BPSec, an attacker on the path can read requests and responses, including credentials, and can forge responses. A deployment that relies on protection at another layer should document that dependency.
 
 ## Response Admission and Cache Poisoning {#admission}
 
@@ -626,11 +637,11 @@ An origin-side gateway fetches whatever a request names, which makes it a means 
 
 ## Replay {#replay}
 
-The default security contexts of BPSec {{RFC9173}} do not prevent replay. A replayed request bundle carrying an unsafe request could cause the request to be acted on again. The responder's detection of duplicate requests ({{processing-request}}) suppresses replays while its records are retained, and a replayed bundle expires when the original does, since its creation timestamp and lifetime are in the primary block, which the BIB protects. Together, these bound the window in which a replay can have any effect. The bound does not hold for a bundle whose creation time is zero: its age is carried in the Bundle Age block, which each forwarding node updates and so cannot usefully be covered by a BIB added at the source, and a replaying node can reset it. A requester SHOULD send each request whose method is not idempotent in a bundle with a non-zero creation timestamp, and with a lifetime no longer than the exchange needs.
+BPSec does not itself prevent replay ({{Section 8.2.4 of RFC9172}}). A replayed request bundle carrying an unsafe request could cause the request to be acted on again. The responder's detection of duplicate requests ({{processing-request}}) suppresses replays while its records are retained, and a replayed bundle expires when the original does, since its creation timestamp and lifetime are in the primary block, which the BCB authenticates. Together, these bound the window in which a replay can have any effect. The bound does not hold for a bundle whose creation time is zero: its age is carried in the Bundle Age block, which each forwarding node updates and so cannot be protected end to end, and a replaying node can reset it. A requester SHOULD send each request whose method is not idempotent in a bundle with a non-zero creation timestamp, and with a lifetime no longer than the exchange needs.
 
 ## Timing Integrity {#timing}
 
-The bundle age of a response determines the age that a requester computes for it ({{age}}), and so how long the response is served. An attacker that could alter it could make a response appear fresher, or more stale, than it is. Where the response bundle has a non-zero creation timestamp, that timestamp is in the primary block, which the BIB protects. Where its creation time is zero, the age is taken from the Bundle Age block, which each forwarding node updates and which a BIB added at the source cannot usefully cover; a deployment that relies on clockless nodes trusts the nodes on the path to maintain it honestly.
+The bundle age of a response determines the age that a requester computes for it ({{age}}), and so how long the response is served. An attacker that could alter it could make a response appear fresher, or more stale, than it is. Where the response bundle has a non-zero creation timestamp, that timestamp is in the primary block, which the BCB authenticates. Where its creation time is zero, the age is taken from the Bundle Age block, which each forwarding node updates and so cannot be protected end to end; a deployment that relies on clockless nodes trusts the nodes on the path to maintain it honestly.
 
 ## Resource Exhaustion
 
@@ -837,7 +848,7 @@ Why gateways rather than tunnels:
 - Validators for incremental responses: whether an origin-side gateway may supply a strong validator for a response that has none, or whether parts should instead be tied together by an envelope option.
 - Event streams: how a requester joins a stream that is already in progress; how it learns that a responder's subscription has restarted and its segment numbering with it; how long responders retain closed segments, and how they answer requests for discarded ones; how streams answering unsafe requests are segmented; and whether this belongs in a companion document.
 - Unknown critical options in requests: whether 501 (Not Implemented) is the right response.
-- BPSec: whether its use should be required rather than recommended, and which security contexts implementations must support.
+- BPSec: whether its use should be required rather than recommended, and whether this document should name a security context that every implementation supports, given that the default security contexts {{?RFC9173}} are expected to be superseded.
 - Age calculation: substituting transit_delay for response_delay ({{age}}) relaxes a requirement of {{Section 4.2.3 of RFC9111}}, which says a cache "MUST interpret this value relative to the time the request was initiated". Whether this document needs to update RFC 9111, or can justify the calculation in some other way, needs review by HTTP caching experts.
 - BPA interface: this document relies on the BPA reporting the bundle age and expiry of each delivered bundle ({{bundle-times}}), which {{RFC9171}} does not require of it.
 - Media type: whether ADUs need a media type for storage or for transport outside BP.
