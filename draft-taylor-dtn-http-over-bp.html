@@ -7,7 +7,7 @@
 <title>HTTP over the Bundle Protocol</title>
 <meta content="Rick Taylor" name="author">
 <meta content="
-       This document specifies a mechanism for carrying HTTP over Bundle Protocol Version 7 (BPv7) networks. Each HTTP request and each HTTP response travels as a single bundle, encoded as a Binary HTTP message inside a small CBOR envelope that correlates responses with requests. Because every bundle carries a complete, self-contained message, the mechanism needs none of the reliable, ordered, connection-oriented transport services that HTTP otherwise relies on, and it tolerates the delay, disruption, reordering, and duplication of a Delay-Tolerant Network. HTTP semantics are unchanged; only the transport beneath them is replaced. The mechanism enables HTTP application-layer gateways at the edges of a bundle network, through which unmodified HTTP clients and origin servers communicate across it, and also lets BP-native applications act as HTTP clients or origin servers directly. The document describes how gateways use HTTP caching to remain useful when round trips are long or intermittent, and it requests a well-known ipn service number. 
+       This document specifies a mechanism for carrying HTTP over Bundle Protocol Version 7 (BPv7) networks. Each HTTP request and each HTTP response travels as a single bundle, encoded as a Binary HTTP message inside a small CBOR envelope that correlates responses with requests. Because every bundle carries a complete, self-contained message, the mechanism needs none of the reliable, ordered, connection-oriented transport services that HTTP otherwise relies on, and it tolerates the delay, disruption, reordering, and duplication of a Delay-Tolerant Network. HTTP semantics are unchanged; only the transport beneath them is replaced. The mechanism enables HTTP application-layer gateways at the edges of a bundle network, through which unmodified HTTP clients and origin servers communicate across it, and also lets BP-native applications act as HTTP clients or origin servers directly. The document describes how gateways use HTTP caching to remain useful when round trips are long or intermittent, and it requests a well-known ipn service number and a registry for envelope options. 
     " name="description">
 <meta content="xml2rfc 3.34.1" name="generator">
 <meta content="DTN" name="keyword">
@@ -1050,7 +1050,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Taylor</td>
-<td class="center">Expires 27 April 2027</td>
+<td class="center">Expires 29 April 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1063,12 +1063,12 @@ svg {
 <dd class="internet-draft">draft-taylor-dtn-http-over-bp-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-10-24" class="published">24 October 2026</time>
+<time datetime="2026-10-26" class="published">26 October 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-04-27">27 April 2027</time></dd>
+<dd class="expires"><time datetime="2027-04-29">29 April 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1081,7 +1081,7 @@ svg {
 <h1 id="title">HTTP over the Bundle Protocol</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">This document specifies a mechanism for carrying HTTP over Bundle Protocol Version 7 (BPv7) networks. Each HTTP request and each HTTP response travels as a single bundle, encoded as a Binary HTTP message inside a small CBOR envelope that correlates responses with requests. Because every bundle carries a complete, self-contained message, the mechanism needs none of the reliable, ordered, connection-oriented transport services that HTTP otherwise relies on, and it tolerates the delay, disruption, reordering, and duplication of a Delay-Tolerant Network. HTTP semantics are unchanged; only the transport beneath them is replaced. The mechanism enables HTTP application-layer gateways at the edges of a bundle network, through which unmodified HTTP clients and origin servers communicate across it, and also lets BP-native applications act as HTTP clients or origin servers directly. The document describes how gateways use HTTP caching to remain useful when round trips are long or intermittent, and it requests a well-known ipn service number.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-1">This document specifies a mechanism for carrying HTTP over Bundle Protocol Version 7 (BPv7) networks. Each HTTP request and each HTTP response travels as a single bundle, encoded as a Binary HTTP message inside a small CBOR envelope that correlates responses with requests. Because every bundle carries a complete, self-contained message, the mechanism needs none of the reliable, ordered, connection-oriented transport services that HTTP otherwise relies on, and it tolerates the delay, disruption, reordering, and duplication of a Delay-Tolerant Network. HTTP semantics are unchanged; only the transport beneath them is replaced. The mechanism enables HTTP application-layer gateways at the edges of a bundle network, through which unmodified HTTP clients and origin servers communicate across it, and also lets BP-native applications act as HTTP clients or origin servers directly. The document describes how gateways use HTTP caching to remain useful when round trips are long or intermittent, and it requests a well-known ipn service number and a registry for envelope options.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 </section>
 <section class="note rfcEditorRemove" id="section-note.1">
       <h2 id="name-about-this-document">
@@ -1118,7 +1118,7 @@ svg {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 27 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 29 April 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1211,14 +1211,6 @@ svg {
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4">
                 <p id="section-toc.1-1.6.2.4.1"><a href="#section-6.4" class="auto internal xref">6.4</a>.  <a href="#name-options" class="internal xref">Options</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4.2.1">
-                    <p id="section-toc.1-1.6.2.4.2.1.1"><a href="#section-6.4.1" class="auto internal xref">6.4.1</a>.  <a href="#name-service-time" class="internal xref">service-time</a></p>
-</li>
-                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4.2.2">
-                    <p id="section-toc.1-1.6.2.4.2.2.1"><a href="#section-6.4.2" class="auto internal xref">6.4.2</a>.  <a href="#name-respond-by" class="internal xref">respond-by</a></p>
-</li>
-                </ul>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.5">
                 <p id="section-toc.1-1.6.2.5.1"><a href="#section-6.5" class="auto internal xref">6.5</a>.  <a href="#name-http-message" class="internal xref">HTTP Message</a></p>
@@ -1232,19 +1224,22 @@ svg {
             <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-exchange-procedures" class="internal xref">Exchange Procedures</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
-                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-sending-a-request" class="internal xref">Sending a Request</a></p>
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-bundle-age-and-expiry" class="internal xref">Bundle Age and Expiry</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
-                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-processing-a-request" class="internal xref">Processing a Request</a></p>
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-sending-a-request" class="internal xref">Sending a Request</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.3">
-                <p id="section-toc.1-1.7.2.3.1"><a href="#section-7.3" class="auto internal xref">7.3</a>.  <a href="#name-sending-a-response" class="internal xref">Sending a Response</a></p>
+                <p id="section-toc.1-1.7.2.3.1"><a href="#section-7.3" class="auto internal xref">7.3</a>.  <a href="#name-processing-a-request" class="internal xref">Processing a Request</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.4">
-                <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-receiving-a-response" class="internal xref">Receiving a Response</a></p>
+                <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-sending-a-response" class="internal xref">Sending a Response</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.5">
-                <p id="section-toc.1-1.7.2.5.1"><a href="#section-7.5" class="auto internal xref">7.5</a>.  <a href="#name-deadlines-and-failure" class="internal xref">Deadlines and Failure</a></p>
+                <p id="section-toc.1-1.7.2.5.1"><a href="#section-7.5" class="auto internal xref">7.5</a>.  <a href="#name-receiving-a-response" class="internal xref">Receiving a Response</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.6">
+                <p id="section-toc.1-1.7.2.6.1"><a href="#section-7.6" class="auto internal xref">7.6</a>.  <a href="#name-deadlines-and-failure" class="internal xref">Deadlines and Failure</a></p>
 </li>
             </ul>
 </li>
@@ -1310,13 +1305,16 @@ svg {
                 <p id="section-toc.1-1.12.2.7.1"><a href="#section-12.7" class="auto internal xref">12.7</a>.  <a href="#name-replay" class="internal xref">Replay</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.8">
-                <p id="section-toc.1-1.12.2.8.1"><a href="#section-12.8" class="auto internal xref">12.8</a>.  <a href="#name-timing-integrity" class="internal xref">Timing Integrity</a></p>
+                <p id="section-toc.1-1.12.2.8.1"><a href="#section-12.8" class="auto internal xref">12.8</a>.  <a href="#name-forged-status-reports" class="internal xref">Forged Status Reports</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.9">
-                <p id="section-toc.1-1.12.2.9.1"><a href="#section-12.9" class="auto internal xref">12.9</a>.  <a href="#name-resource-exhaustion" class="internal xref">Resource Exhaustion</a></p>
+                <p id="section-toc.1-1.12.2.9.1"><a href="#section-12.9" class="auto internal xref">12.9</a>.  <a href="#name-timing-integrity" class="internal xref">Timing Integrity</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.10">
-                <p id="section-toc.1-1.12.2.10.1"><a href="#section-12.10" class="auto internal xref">12.10</a>. <a href="#name-credentials-and-privacy" class="internal xref">Credentials and Privacy</a></p>
+                <p id="section-toc.1-1.12.2.10.1"><a href="#section-12.10" class="auto internal xref">12.10</a>. <a href="#name-resource-exhaustion" class="internal xref">Resource Exhaustion</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.11">
+                <p id="section-toc.1-1.12.2.11.1"><a href="#section-12.11" class="auto internal xref">12.11</a>. <a href="#name-credentials-and-privacy" class="internal xref">Credentials and Privacy</a></p>
 </li>
             </ul>
 </li>
@@ -1458,7 +1456,7 @@ svg {
 "<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
 described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
 appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
-<p id="section-2-2">This document uses the terms "bundle", "application data unit (ADU)", "bundle protocol agent (BPA)", "endpoint ID (EID)", "node ID", "lifetime", and "DTN time" from <span>[<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>; the terms "intermediary", "gateway", "origin server", "user agent", "target URI", "safe", and "idempotent" from <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>; and the terms "shared cache", "stored response", "fresh", and "stale" from <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>. Data structures are described using the Concise Data Definition Language (CDDL) <span>[<a href="#RFC8610" class="cite xref">RFC8610</a>]</span>.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<p id="section-2-2">This document uses the terms "bundle", "application data unit (ADU)", "bundle protocol agent (BPA)", "endpoint ID (EID)", "lifetime", "creation timestamp", and "bundle age" from <span>[<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>; the terms "intermediary", "gateway", "origin server", "user agent", "target URI", "safe", and "idempotent" from <span>[<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>; and the terms "shared cache", "stored response", "fresh", and "stale" from <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>. Data structures are described using the Concise Data Definition Language (CDDL) <span>[<a href="#RFC8610" class="cite xref">RFC8610</a>]</span>.<a href="#section-2-2" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-2-3">
         <dt id="section-2-3.1">Requester:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.2">
@@ -1664,7 +1662,7 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
         </h3>
 <p id="section-5.1-1">A responder receives request ADUs at an endpoint registered for this service. The well-known endpoint is ipn-scheme service number TBD1 (<a href="#iana-service" class="auto internal xref">Section 13.1</a>) at the responder's node; for example, <code>ipn:977000.100.TBD1</code> is the responder endpoint of node 100 under allocator 977000 <span>[<a href="#RFC9758" class="cite xref">RFC9758</a>]</span>.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
 <p id="section-5.1-2">A responder <span class="bcp14">SHOULD</span> support the well-known endpoint, so that requesters can reach it without additional configuration. A responder <span class="bcp14">MAY</span> also receive requests at other endpoints, which requesters must learn by other means.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
-<p id="section-5.1-3">A requester <span class="bcp14">MUST</span> address each request bundle to a singleton endpoint, because it relies on the response bundle being sourced from the same endpoint (<a href="#receiving-response" class="auto internal xref">Section 7.4</a>).<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-3">A requester <span class="bcp14">MUST</span> address each request bundle to a singleton endpoint, because it admits a response only from a bundle whose source EID is the EID to which it sent the request (<a href="#receiving-response" class="auto internal xref">Section 7.5</a>).<a href="#section-5.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="requester-endpoint">
@@ -1672,7 +1670,7 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
         <h3 id="name-requester-endpoint">
 <a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-requester-endpoint" class="section-name selfRef">Requester Endpoint</a>
         </h3>
-<p id="section-5.2-1">A requester sends each request bundle from a singleton endpoint at which it is registered, and receives the responses at that endpoint. A requester <span class="bcp14">MUST NOT</span> send a request bundle whose source is the null endpoint ID (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-4.2.5.1.1" class="relref">Section 4.2.5.1.1</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>), since there would be no endpoint to which to return the response.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-1">A requester sends each request bundle from a singleton endpoint at which it is registered, and receives the responses at that endpoint. A requester <span class="bcp14">MUST NOT</span> send a request bundle whose source EID is the null endpoint ID (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-4.2.5.1.1" class="relref">Section 4.2.5.1.1</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>), since there would be no endpoint to which to return the response.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
 <p id="section-5.2-2">The requester's endpoint need not be the well-known service endpoint. A node that acts as both requester and responder <span class="bcp14">MAY</span> use one endpoint for both roles: the direction of each ADU is given by the Binary HTTP framing indicator (<a href="#message" class="auto internal xref">Section 6.5</a>).<a href="#section-5.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -1708,12 +1706,17 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
         <h3 id="name-structure">
 <a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-structure" class="section-name selfRef">Structure</a>
         </h3>
-<p id="section-6.1-1">Each ADU consists of exactly one CBOR <span>[<a href="#RFC8949" class="cite xref">RFC8949</a>]</span> data item: an array of four elements.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<p id="section-6.1-1">Each ADU consists of exactly one CBOR <span>[<a href="#RFC8949" class="cite xref">RFC8949</a>]</span> data item: an array whose first element is a version number (<a href="#version" class="auto internal xref">Section 6.2</a>). The rest of the array is defined by the version; this document defines version 1, an array of four elements.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
 <span id="name-adu-structure"></span><div id="fig-cddl">
 <figure id="figure-4">
           <div class="lang-cddl sourcecode" id="section-6.1-2.1">
 <pre>
 http-over-bp-adu = [
+  version: uint,
+  * any                   ; defined by the version
+]
+
+http-over-bp-adu-v1 = [
   version: 1,
   correlation: correlation-id,
   options: options,
@@ -1723,15 +1726,11 @@ http-over-bp-adu = [
 correlation-id = bstr .size (1..64)
 
 options = {
-  ? 1 =&gt; dtn-time,        ; service-time (responses)
-  ? 2 =&gt; dtn-time,        ; respond-by (requests)
-  ? 3 =&gt; true,            ; incremental (requests)
-  ? 4 =&gt; true,            ; final-segment (responses)
+  ? 1 =&gt; true,            ; incremental (requests)
+  ? 2 =&gt; true,            ; final-segment (responses)
   ? -1 =&gt; uint,           ; segment (requests and responses)
   * int =&gt; any            ; options defined by future specifications
 }
-
-dtn-time = uint           ; RFC 9171, Section 4.2.6
 </pre>
 </div>
 <figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
@@ -1739,7 +1738,7 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
           </figcaption></figure>
 </div>
 <p id="section-6.1-3">A sender <span class="bcp14">MUST</span> use definite-length encoding for every data item in the ADU and <span class="bcp14">MUST NOT</span> repeat a key within the options map; senders <span class="bcp14">SHOULD</span> use the core deterministic encoding of <span><a href="https://rfc-editor.org/rfc/rfc8949#section-4.2.1" class="relref">Section 4.2.1</a> of [<a href="#RFC8949" class="cite xref">RFC8949</a>]</span>. The ADU <span class="bcp14">MUST</span> contain no data after the array.<a href="#section-6.1-3" class="pilcrow">¶</a></p>
-<p id="section-6.1-4">A receiver <span class="bcp14">MUST</span> discard, without responding, an ADU that is not well-formed CBOR, that does not match <a href="#fig-cddl" class="auto internal xref">Figure 4</a>, that contains a duplicate map key, or that has trailing data.<a href="#section-6.1-4" class="pilcrow">¶</a></p>
+<p id="section-6.1-4">A receiver <span class="bcp14">MUST</span> discard, without responding, an ADU that is not well-formed CBOR, that does not match the http-over-bp-adu rule of <a href="#fig-cddl" class="auto internal xref">Figure 4</a>, that contains a duplicate map key, or that has trailing data. It then checks the version (<a href="#version" class="auto internal xref">Section 6.2</a>); a version 1 ADU that does not match the http-over-bp-adu-v1 rule <span class="bcp14">MUST</span> likewise be discarded without responding.<a href="#section-6.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="version">
@@ -1747,7 +1746,7 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
         <h3 id="name-version">
 <a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-version" class="section-name selfRef">Version</a>
         </h3>
-<p id="section-6.2-1">The version element identifies the format of the remainder of the ADU; this document specifies version 1. A receiver <span class="bcp14">MUST</span> discard, without responding, an ADU with a version it does not support. The version sits outside the structure it versions, so that a future version can change any other element.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<p id="section-6.2-1">The version element identifies the format of the remainder of the ADU. A receiver <span class="bcp14">MUST</span> discard, without responding, an ADU with a version it does not support. The version sits outside the structure it versions, so that a future version can change any other element.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="correlation">
@@ -1756,7 +1755,7 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
 <a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-correlation-identifier" class="section-name selfRef">Correlation Identifier</a>
         </h3>
 <p id="section-6.3-1">The correlation identifier associates a response with its request. The requester generates it; the responder treats it as opaque and copies it unchanged into each response ADU it sends for that request.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
-<p id="section-6.3-2">A requester <span class="bcp14">MUST NOT</span> use a correlation identifier that is already in use for another outstanding exchange from the same requester endpoint, except when retrying a request (<a href="#sending-request" class="auto internal xref">Section 7.1</a>). Identifiers <span class="bcp14">SHOULD</span> be at least 16 bytes long and generated by a cryptographically secure random number generator, so that an attacker cannot predict them (<a href="#security" class="auto internal xref">Section 12</a>). A requester <span class="bcp14">MAY</span> instead encode its own state in the identifier, for example an authenticated token that lets it process responses without retaining per-exchange state, provided the result is equally unpredictable.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+<p id="section-6.3-2">A requester <span class="bcp14">MUST NOT</span> use a correlation identifier that is already in use for another outstanding exchange from the same requester endpoint, except when retrying a request (<a href="#sending-request" class="auto internal xref">Section 7.2</a>). Identifiers <span class="bcp14">SHOULD</span> be at least 16 bytes long and generated by a cryptographically secure random number generator, so that an attacker cannot predict them (<a href="#security" class="auto internal xref">Section 12</a>). A requester <span class="bcp14">MAY</span> instead encode its own state in the identifier, for example an authenticated token that lets it process responses without retaining per-exchange state, provided the result is equally unpredictable.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="options">
@@ -1771,7 +1770,7 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
             <p id="section-6.4-3.1.1">An option with a non-negative key is elective. A receiver <span class="bcp14">MUST</span> ignore an elective option that it does not understand, or that is defined only for the other direction.<a href="#section-6.4-3.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-6.4-3.2">
-            <p id="section-6.4-3.2.1">An option with a negative key is critical. A responder that receives a request ADU containing a critical option that it does not understand <span class="bcp14">MUST NOT</span> process the request and <span class="bcp14">SHOULD</span> respond with 501 (Not Implemented) and a Proxy-Status field <span>[<a href="#RFC9209" class="cite xref">RFC9209</a>]</span> whose "details" parameter identifies the option. A requester that receives a response ADU containing a critical option that it does not understand <span class="bcp14">MUST</span> discard the ADU and treat the exchange as failed.<a href="#section-6.4-3.2.1" class="pilcrow">¶</a></p>
+            <p id="section-6.4-3.2.1">An option with a negative key is critical. A responder that receives a request ADU containing a critical option that it does not understand <span class="bcp14">MUST NOT</span> process the request and <span class="bcp14">SHOULD</span> respond with 501 (Not Implemented) and a Proxy-Status field <span>[<a href="#RFC9209" class="cite xref">RFC9209</a>]</span> whose "details" parameter identifies the option. A requester that receives a response ADU containing a critical option that it does not understand <span class="bcp14">MUST</span> discard the ADU and, if the ADU passes the admission check of <a href="#receiving-response" class="auto internal xref">Section 7.5</a>, treat the exchange as failed.<a href="#section-6.4-3.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-6.4-4">Key 0 is reserved. The options defined by this document are listed in <a href="#tab-options" class="auto internal xref">Table 1</a>; further options are registered as described in <a href="#iana-options" class="auto internal xref">Section 13.2</a>.<a href="#section-6.4-4" class="pilcrow">¶</a></p>
@@ -1793,24 +1792,6 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
           <tbody>
             <tr>
               <td class="text-right" rowspan="1" colspan="1">1</td>
-              <td class="text-left" rowspan="1" colspan="1">service-time</td>
-              <td class="text-left" rowspan="1" colspan="1">Responses</td>
-              <td class="text-left" rowspan="1" colspan="1">dtn-time</td>
-              <td class="text-left" rowspan="1" colspan="1">
-                <a href="#service-time" class="auto internal xref">Section 6.4.1</a>
-</td>
-            </tr>
-            <tr>
-              <td class="text-right" rowspan="1" colspan="1">2</td>
-              <td class="text-left" rowspan="1" colspan="1">respond-by</td>
-              <td class="text-left" rowspan="1" colspan="1">Requests</td>
-              <td class="text-left" rowspan="1" colspan="1">dtn-time</td>
-              <td class="text-left" rowspan="1" colspan="1">
-                <a href="#respond-by" class="auto internal xref">Section 6.4.2</a>
-</td>
-            </tr>
-            <tr>
-              <td class="text-right" rowspan="1" colspan="1">3</td>
               <td class="text-left" rowspan="1" colspan="1">incremental</td>
               <td class="text-left" rowspan="1" colspan="1">Requests</td>
               <td class="text-left" rowspan="1" colspan="1">true</td>
@@ -1819,7 +1800,7 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
 </td>
             </tr>
             <tr>
-              <td class="text-right" rowspan="1" colspan="1">4</td>
+              <td class="text-right" rowspan="1" colspan="1">2</td>
               <td class="text-left" rowspan="1" colspan="1">final-segment</td>
               <td class="text-left" rowspan="1" colspan="1">Responses</td>
               <td class="text-left" rowspan="1" colspan="1">true</td>
@@ -1839,24 +1820,7 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
           </tbody>
         </table>
 </div>
-<div id="service-time">
-<section id="section-6.4.1">
-          <h4 id="name-service-time">
-<a href="#section-6.4.1" class="section-number selfRef">6.4.1. </a><a href="#name-service-time" class="section-name selfRef">service-time</a>
-          </h4>
-<p id="section-6.4.1-1">The service-time option carries the DTN time (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-4.2.6" class="relref">Section 4.2.6</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>) at which the responder generated the response: for an origin-side gateway, the time at which it received the response header section from the origin server; for a responder answering from a stored response or acting as the origin server, the time at which it constructed the response.<a href="#section-6.4.1-1" class="pilcrow">¶</a></p>
-<p id="section-6.4.1-2">A responder whose clock is accurate, in the sense of <span>[<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>, <span class="bcp14">SHOULD</span> include the service-time option in every response ADU. A responder without an accurate clock <span class="bcp14">MUST NOT</span> include it. Requesters use the option to calculate the age of a response (<a href="#age" class="auto internal xref">Section 10.2</a>).<a href="#section-6.4.1-2" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="respond-by">
-<section id="section-6.4.2">
-          <h4 id="name-respond-by">
-<a href="#section-6.4.2" class="section-number selfRef">6.4.2. </a><a href="#name-respond-by" class="section-name selfRef">respond-by</a>
-          </h4>
-<p id="section-6.4.2-1">The respond-by option carries the DTN time after which the requester will no longer use a response to the request. A requester whose clock is accurate <span class="bcp14">SHOULD</span> include the respond-by option in every request ADU. It matters most in requests whose method is not idempotent, since it also bounds the period over which a replayed request could be acted upon (<a href="#replay" class="auto internal xref">Section 12.7</a>).<a href="#section-6.4.2-1" class="pilcrow">¶</a></p>
-<p id="section-6.4.2-2">A responder that has an accurate clock and receives a request ADU after its respond-by time has passed <span class="bcp14">SHOULD</span> discard it without processing it. A responder <span class="bcp14">MUST NOT</span> give a response bundle a lifetime that extends beyond the respond-by time of the request it answers, and <span class="bcp14">SHOULD NOT</span> send a response ADU after that time.<a href="#section-6.4.2-2" class="pilcrow">¶</a></p>
-</section>
-</div>
+<p id="section-6.4-6">The timing of an exchange is not carried in options; it is taken from the bundles themselves (<a href="#bundle-times" class="auto internal xref">Section 7.1</a>).<a href="#section-6.4-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="message">
@@ -1868,7 +1832,7 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
 <p id="section-6.5-2">The framing indicator determines the direction of the ADU: an ADU whose message is a request is a request ADU, and one whose message is a response is a response ADU.<a href="#section-6.5-2" class="pilcrow">¶</a></p>
 <p id="section-6.5-3">The request control data (<span><a href="https://rfc-editor.org/rfc/rfc9292#section-3.4" class="relref">Section 3.4</a> of [<a href="#RFC9292" class="cite xref">RFC9292</a>]</span>) carries the method and the scheme, authority, and path of the target URI. The authority <span class="bcp14">MUST NOT</span> be empty. A request <span class="bcp14">MAY</span> include a Host header field, in which case it <span class="bcp14">MUST</span> identify the same authority as the control data; a responder <span class="bcp14">MUST</span> treat a request in which they differ as malformed (compare <span><a href="https://rfc-editor.org/rfc/rfc9113#section-8.3.1" class="relref">Section 8.3.1</a> of [<a href="#RFC9113" class="cite xref">RFC9113</a>]</span>). A responder <span class="bcp14">MUST</span> use the authority in the control data, not the Host field, to identify the target.<a href="#section-6.5-3" class="pilcrow">¶</a></p>
 <p id="section-6.5-4">A response message carries exactly one final response. A responder <span class="bcp14">SHOULD NOT</span> include informational (1xx) responses (<span><a href="https://rfc-editor.org/rfc/rfc9292#section-3.5.1" class="relref">Section 3.5.1</a> of [<a href="#RFC9292" class="cite xref">RFC9292</a>]</span>): they are hints about a connection that no longer exists by the time the response is delivered. A requester <span class="bcp14">MUST</span> ignore any that are present.<a href="#section-6.5-4" class="pilcrow">¶</a></p>
-<p id="section-6.5-5">Messages <span class="bcp14">MAY</span> carry trailer fields, and <span class="bcp14">MAY</span> be padded (<span><a href="https://rfc-editor.org/rfc/rfc9292#section-3.8" class="relref">Section 3.8</a> of [<a href="#RFC9292" class="cite xref">RFC9292</a>]</span>). Padding obscures message length only when the ADU is also encrypted (<a href="#privacy" class="auto internal xref">Section 12.10</a>).<a href="#section-6.5-5" class="pilcrow">¶</a></p>
+<p id="section-6.5-5">Messages <span class="bcp14">MAY</span> carry trailer fields, and <span class="bcp14">MAY</span> be padded (<span><a href="https://rfc-editor.org/rfc/rfc9292#section-3.8" class="relref">Section 3.8</a> of [<a href="#RFC9292" class="cite xref">RFC9292</a>]</span>). Padding obscures message length only when the ADU is also encrypted (<a href="#privacy" class="auto internal xref">Section 12.11</a>).<a href="#section-6.5-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="fields">
@@ -1901,113 +1865,124 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
       <h2 id="name-exchange-procedures">
 <a href="#section-7" class="section-number selfRef">7. </a><a href="#name-exchange-procedures" class="section-name selfRef">Exchange Procedures</a>
       </h2>
-<div id="sending-request">
+<div id="bundle-times">
 <section id="section-7.1">
-        <h3 id="name-sending-a-request">
-<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-sending-a-request" class="section-name selfRef">Sending a Request</a>
+        <h3 id="name-bundle-age-and-expiry">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-bundle-age-and-expiry" class="section-name selfRef">Bundle Age and Expiry</a>
         </h3>
-<p id="section-7.1-1">To send a request, a requester:<a href="#section-7.1-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-7.1-2">
-<li id="section-7.1-2.1">
-            <p id="section-7.1-2.1.1">selects a responder for the target URI (<a href="#discovery" class="auto internal xref">Section 5.3</a>);<a href="#section-7.1-2.1.1" class="pilcrow">¶</a></p>
+<p id="section-7.1-1">The procedures in this section use two properties of each bundle that the BPA delivers: its bundle age, the time that has elapsed since it was created, and its expiry, the time at which its age will exceed its lifetime. Under <span><a href="https://rfc-editor.org/rfc/rfc9171#section-5.5" class="relref">Section 5.5</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>, bundle age is determined from the bundle's creation timestamp where that timestamp is not zero and the receiving node's clock is accurate, and otherwise from the Bundle Age block (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-4.4.2" class="relref">Section 4.4.2</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>), so both properties are available whether or not the nodes involved have accurate clocks.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<p id="section-7.1-2">The timing of an exchange is carried by its bundles rather than in the ADU. The lifetime of the request bundle bounds the whole exchange (<a href="#sending-request" class="auto internal xref">Section 7.2</a>), the response bundle expires no later than the request bundle (<a href="#sending-response" class="auto internal xref">Section 7.4</a>), and the bundle age of a response measures the time it spent in transit (<a href="#age" class="auto internal xref">Section 10.2</a>).<a href="#section-7.1-2" class="pilcrow">¶</a></p>
+<p id="section-7.1-3"><span>[<a href="#RFC9171" class="cite xref">RFC9171</a>]</span> does not specify the interface between a BPA and the application agent. A requester or responder relies on its BPA to report the bundle age and expiry of each bundle it delivers.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sending-request">
+<section id="section-7.2">
+        <h3 id="name-sending-a-request">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-sending-a-request" class="section-name selfRef">Sending a Request</a>
+        </h3>
+<p id="section-7.2-1">To send a request, a requester:<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-7.2-2">
+<li id="section-7.2-2.1">
+            <p id="section-7.2-2.1.1">selects a responder for the target URI (<a href="#discovery" class="auto internal xref">Section 5.3</a>);<a href="#section-7.2-2.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-7.1-2.2">
-            <p id="section-7.1-2.2.1">constructs the request message as specified in <a href="#message" class="auto internal xref">Section 6.5</a> and <a href="#fields" class="auto internal xref">Section 6.6</a>;<a href="#section-7.1-2.2.1" class="pilcrow">¶</a></p>
+          <li id="section-7.2-2.2">
+            <p id="section-7.2-2.2.1">constructs the request message as specified in <a href="#message" class="auto internal xref">Section 6.5</a> and <a href="#fields" class="auto internal xref">Section 6.6</a>;<a href="#section-7.2-2.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-7.1-2.3">
-            <p id="section-7.1-2.3.1">generates a correlation identifier (<a href="#correlation" class="auto internal xref">Section 6.3</a>) and constructs the request ADU, including the respond-by option (<a href="#respond-by" class="auto internal xref">Section 6.4.2</a>) where it has an accurate clock;<a href="#section-7.1-2.3.1" class="pilcrow">¶</a></p>
+          <li id="section-7.2-2.3">
+            <p id="section-7.2-2.3.1">generates a correlation identifier (<a href="#correlation" class="auto internal xref">Section 6.3</a>) and constructs the request ADU;<a href="#section-7.2-2.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-7.1-2.4">
-            <p id="section-7.1-2.4.1">requests transmission of a bundle whose payload is the request ADU, whose destination is the responder endpoint, and whose source is the requester endpoint (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-5.2" class="relref">Section 5.2</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>); and<a href="#section-7.1-2.4.1" class="pilcrow">¶</a></p>
+          <li id="section-7.2-2.4">
+            <p id="section-7.2-2.4.1">requests transmission of a bundle whose payload is the request ADU, whose destination EID identifies the responder endpoint, and whose source EID identifies the requester endpoint (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-5.2" class="relref">Section 5.2</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>); and<a href="#section-7.2-2.4.1" class="pilcrow">¶</a></p>
 </li>
-          <li id="section-7.1-2.5">
-            <p id="section-7.1-2.5.1">records the exchange: its correlation identifier, the responder endpoint to which it was sent, and its deadline (<a href="#failure" class="auto internal xref">Section 7.5</a>).<a href="#section-7.1-2.5.1" class="pilcrow">¶</a></p>
+          <li id="section-7.2-2.5">
+            <p id="section-7.2-2.5.1">records the exchange: its correlation identifier, the responder endpoint to which it was sent, and its deadline (<a href="#failure" class="auto internal xref">Section 7.6</a>).<a href="#section-7.2-2.5.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="section-7.1-3">Each request ADU is sent in a bundle of its own. A requester <span class="bcp14">MUST NOT</span> place more than one ADU in a bundle. The BPA may fragment the bundle in transit (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-5.8" class="relref">Section 5.8</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>); the responder's BPA reassembles it before delivery.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
-<p id="section-7.1-4">The lifetime of the request bundle <span class="bcp14">SHOULD</span> be long enough for delivery over the expected path, for example as estimated from a contact plan, and no longer than the period during which the request remains useful. A requester <span class="bcp14">MAY</span> request bundle deletion status reports (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-6.1.1" class="relref">Section 6.1.1</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>) so that it can detect failure early (<a href="#failure" class="auto internal xref">Section 7.5</a>); it <span class="bcp14">SHOULD NOT</span> request other status reports, except for diagnostics, because each report adds traffic to the bundle network.<a href="#section-7.1-4" class="pilcrow">¶</a></p>
-<p id="section-7.1-5">A requester <span class="bcp14">MUST NOT</span> automatically retry a request whose method is not idempotent (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-9.2.2" class="relref">Section 9.2.2</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>). It <span class="bcp14">MAY</span> retry a request whose method is safe or idempotent, for example after a deletion status report or once its deadline has passed. A retry <span class="bcp14">SHOULD</span> reuse the correlation identifier of the original request, so that a response to either attempt completes the exchange and a response to the other is discarded as a duplicate.<a href="#section-7.1-5" class="pilcrow">¶</a></p>
+<p id="section-7.2-3">Each request ADU is sent in a bundle of its own. A requester <span class="bcp14">MUST NOT</span> place more than one ADU in a bundle. The BPA may fragment the bundle in transit (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-5.8" class="relref">Section 5.8</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>); the responder's BPA reassembles it before delivery.<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+<p id="section-7.2-4">The lifetime of the request bundle bounds the whole exchange, since no response can be sent after the request bundle expires (<a href="#sending-response" class="auto internal xref">Section 7.4</a>). It <span class="bcp14">SHOULD</span> be long enough for the request to reach the responder and for the response to return, for example as estimated from a contact plan, and no longer than the period during which the requester will use a response. A requester <span class="bcp14">MAY</span> request bundle deletion status reports (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-6.1.1" class="relref">Section 6.1.1</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>) so that it can detect failure early (<a href="#failure" class="auto internal xref">Section 7.6</a>); it <span class="bcp14">SHOULD NOT</span> request other status reports, except for diagnostics, because each report adds traffic to the bundle network.<a href="#section-7.2-4" class="pilcrow">¶</a></p>
+<p id="section-7.2-5">A requester <span class="bcp14">MUST NOT</span> automatically retry a request whose method is not idempotent (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-9.2.2" class="relref">Section 9.2.2</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>). It <span class="bcp14">MAY</span> retry a request whose method is safe or idempotent, for example after a deletion status report or once its deadline has passed. A retry <span class="bcp14">SHOULD</span> reuse the correlation identifier of the original request, so that a response to either attempt completes the exchange and a response to the other is discarded as a duplicate. The exchange's deadline then becomes the expiry of the retry's request bundle (<a href="#failure" class="auto internal xref">Section 7.6</a>).<a href="#section-7.2-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="processing-request">
-<section id="section-7.2">
+<section id="section-7.3">
         <h3 id="name-processing-a-request">
-<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-processing-a-request" class="section-name selfRef">Processing a Request</a>
+<a href="#section-7.3" class="section-number selfRef">7.3. </a><a href="#name-processing-a-request" class="section-name selfRef">Processing a Request</a>
         </h3>
-<p id="section-7.2-1">When an ADU is delivered to a responder (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-5.7" class="relref">Section 5.7</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>), the responder <span class="bcp14">MUST</span> discard it, without responding, if:<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<p id="section-7.3-1">When an ADU is delivered to a responder (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-5.7" class="relref">Section 5.7</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>), the responder <span class="bcp14">MUST</span> discard it, without responding, if:<a href="#section-7.3-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-7.2-2.1">
-            <p id="section-7.2-2.1.1">the ADU is not valid as specified in <a href="#envelope" class="auto internal xref">Section 6.1</a>, or has an unsupported version;<a href="#section-7.2-2.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-7.3-2.1">
+            <p id="section-7.3-2.1.1">the ADU is not valid as specified in <a href="#envelope" class="auto internal xref">Section 6.1</a>, or has an unsupported version;<a href="#section-7.3-2.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.2-2.2">
-            <p id="section-7.2-2.2.1">its message is a response;<a href="#section-7.2-2.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.3-2.2">
+            <p id="section-7.3-2.2.1">its message is a response;<a href="#section-7.3-2.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.2-2.3">
-            <p id="section-7.2-2.3.1">the source of the bundle that carried it is the null endpoint ID; or<a href="#section-7.2-2.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.3-2.3">
+            <p id="section-7.3-2.3.1">the source EID of the bundle that carried it is the null endpoint ID; or<a href="#section-7.3-2.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.2-2.4">
-            <p id="section-7.2-2.4.1">the bundle's "ADU is an administrative record" flag is set.<a href="#section-7.2-2.4.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.3-2.4">
+            <p id="section-7.3-2.4.1">the bundle's "ADU is an administrative record" flag is set.<a href="#section-7.3-2.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-7.2-3">If the message is not a valid Binary HTTP message (<span><a href="https://rfc-editor.org/rfc/rfc9292#section-4" class="relref">Section 4</a> of [<a href="#RFC9292" class="cite xref">RFC9292</a>]</span>) or is malformed as described in <a href="#message" class="auto internal xref">Section 6.5</a>, the responder <span class="bcp14">SHOULD</span> respond with 400 (Bad Request). If the request contains a critical option the responder does not understand, it proceeds as specified in <a href="#options" class="auto internal xref">Section 6.4</a>.<a href="#section-7.2-3" class="pilcrow">¶</a></p>
-<p id="section-7.2-4">Otherwise the responder handles the request. A BP-native origin server handles it as an origin server would. An origin-side gateway forwards it to the origin server as an HTTP gateway (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-3.7" class="relref">Section 3.7</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>): it identifies the origin from the target URI, establishes a connection, verifying the server's certificate for an "https" target as <span><a href="https://rfc-editor.org/rfc/rfc9110#section-4.3.4" class="relref">Section 4.3.4</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span> requires, applies the field handling of <a href="#fields" class="auto internal xref">Section 6.6</a>, and sends the request. A responder that has a cache <span class="bcp14">MAY</span> answer from a stored response under the rules of <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>. An origin-side gateway <span class="bcp14">SHOULD</span> apply a policy that restricts the destinations it will contact (<a href="#ssrf" class="auto internal xref">Section 12.6</a>).<a href="#section-7.2-4" class="pilcrow">¶</a></p>
-<p id="section-7.2-5">A responder can receive the same request more than once: BP can duplicate bundles, and a requester can retry a request with its original correlation identifier. Re-executing a request whose method is not idempotent could repeat its effect. For such requests, a responder <span class="bcp14">SHOULD</span> recognise a duplicate by the source of the request bundle together with its correlation identifier and, rather than processing the request again, re-send the response it gave to the first copy, or nothing if that response is not yet complete. A responder that does so <span class="bcp14">SHOULD</span> retain its record of each exchange at least until the request's respond-by time (<a href="#respond-by" class="auto internal xref">Section 6.4.2</a>), or for a configured period where respond-by is absent.<a href="#section-7.2-5" class="pilcrow">¶</a></p>
+<p id="section-7.3-3">If the message is not a valid Binary HTTP message (<span><a href="https://rfc-editor.org/rfc/rfc9292#section-4" class="relref">Section 4</a> of [<a href="#RFC9292" class="cite xref">RFC9292</a>]</span>) or is malformed as described in <a href="#message" class="auto internal xref">Section 6.5</a>, the responder <span class="bcp14">SHOULD</span> respond with 400 (Bad Request). If the request contains a critical option the responder does not understand, it proceeds as specified in <a href="#options" class="auto internal xref">Section 6.4</a>.<a href="#section-7.3-3" class="pilcrow">¶</a></p>
+<p id="section-7.3-4">Otherwise the responder handles the request. A BP-native origin server handles it as an origin server would. An origin-side gateway forwards it to the origin server as an HTTP gateway (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-3.7" class="relref">Section 3.7</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>): it identifies the origin from the target URI, establishes a connection, verifying the server's certificate for an "https" target as <span><a href="https://rfc-editor.org/rfc/rfc9110#section-4.3.4" class="relref">Section 4.3.4</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span> requires, applies the field handling of <a href="#fields" class="auto internal xref">Section 6.6</a>, and sends the request. A responder that has a cache <span class="bcp14">MAY</span> answer from a stored response under the rules of <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>. An origin-side gateway <span class="bcp14">SHOULD</span> apply a policy that restricts the destinations it will contact (<a href="#ssrf" class="auto internal xref">Section 12.6</a>).<a href="#section-7.3-4" class="pilcrow">¶</a></p>
+<p id="section-7.3-5">A request bundle that expires before it is delivered is deleted by the BPA (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-5.5" class="relref">Section 5.5</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>), so a responder does not process a request after its requester has stopped waiting for the response. A responder <span class="bcp14">MAY</span> also discard, without processing, a request that it estimates cannot be answered before the request bundle expires, for example from a contact plan.<a href="#section-7.3-5" class="pilcrow">¶</a></p>
+<p id="section-7.3-6">A responder can receive the same request more than once. A requester can retry a request whose method is safe or idempotent (<a href="#sending-request" class="auto internal xref">Section 7.2</a>), and the responder can simply process it again, as in HTTP. A request whose method is not idempotent is never retried automatically, but BP can duplicate the bundle that carries it, and re-executing the request could repeat its effect. For such requests, a responder <span class="bcp14">SHOULD</span> recognise a duplicate by the source EID of the request bundle together with its correlation identifier and, rather than processing the request again, re-send the response it gave to the first copy, or nothing if that response is not yet complete. A responder that does so <span class="bcp14">SHOULD</span> retain its record of each exchange at least until the request bundle expires (<a href="#bundle-times" class="auto internal xref">Section 7.1</a>). A re-sent response is subject to the same lifetime bound and Age requirement as any other (<a href="#sending-response" class="auto internal xref">Section 7.4</a>).<a href="#section-7.3-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sending-response">
-<section id="section-7.3">
+<section id="section-7.4">
         <h3 id="name-sending-a-response">
-<a href="#section-7.3" class="section-number selfRef">7.3. </a><a href="#name-sending-a-response" class="section-name selfRef">Sending a Response</a>
+<a href="#section-7.4" class="section-number selfRef">7.4. </a><a href="#name-sending-a-response" class="section-name selfRef">Sending a Response</a>
         </h3>
-<p id="section-7.3-1">To answer a request, the responder constructs a response ADU with:<a href="#section-7.3-1" class="pilcrow">¶</a></p>
+<p id="section-7.4-1">To answer a request, the responder constructs a response ADU with:<a href="#section-7.4-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-7.3-2.1">
-            <p id="section-7.3-2.1.1">version 1;<a href="#section-7.3-2.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-7.4-2.1">
+            <p id="section-7.4-2.1.1">version 1;<a href="#section-7.4-2.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.3-2.2">
-            <p id="section-7.3-2.2.1">the correlation identifier copied, unchanged, from the request ADU;<a href="#section-7.3-2.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.4-2.2">
+            <p id="section-7.4-2.2.1">the correlation identifier copied, unchanged, from the request ADU;<a href="#section-7.4-2.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.3-2.3">
-            <p id="section-7.3-2.3.1">the service-time option (<a href="#service-time" class="auto internal xref">Section 6.4.1</a>), if its clock is accurate, and any other options that apply; and<a href="#section-7.3-2.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.4-2.3">
+            <p id="section-7.4-2.3.1">any options that apply; and<a href="#section-7.4-2.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.3-2.4">
-            <p id="section-7.3-2.4.1">the final response, encoded as specified in <a href="#message" class="auto internal xref">Section 6.5</a> and <a href="#fields" class="auto internal xref">Section 6.6</a>.<a href="#section-7.3-2.4.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.4-2.4">
+            <p id="section-7.4-2.4.1">the final response, encoded as specified in <a href="#message" class="auto internal xref">Section 6.5</a> and <a href="#fields" class="auto internal xref">Section 6.6</a>.<a href="#section-7.4-2.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-7.3-3">It requests transmission of a bundle whose payload is the response ADU, whose destination is the source node ID of the request bundle, and whose source is the endpoint to which the request bundle was addressed. The lifetime of the response bundle <span class="bcp14">MUST NOT</span> extend beyond the request's respond-by time, if present (<a href="#respond-by" class="auto internal xref">Section 6.4.2</a>).<a href="#section-7.3-3" class="pilcrow">¶</a></p>
-<p id="section-7.3-4">A responder sends one response ADU for each request it processes, except as specified in <a href="#extended" class="auto internal xref">Section 8</a>.<a href="#section-7.3-4" class="pilcrow">¶</a></p>
-<p id="section-7.3-5">When an origin-side gateway cannot complete the exchange with the origin server, it responds with an error response such as 502 (Bad Gateway) or 504 (Gateway Timeout), carrying a Proxy-Status field <span>[<a href="#RFC9209" class="cite xref">RFC9209</a>]</span> that identifies the gateway and the error type, for example "dns_error", "connection_refused", "connection_timeout", "tls_certificate_error", or "http_response_timeout". Clients can then distinguish a failure beyond the origin-side gateway from a failure in the bundle network (<a href="#failure" class="auto internal xref">Section 7.5</a>).<a href="#section-7.3-5" class="pilcrow">¶</a></p>
+<p id="section-7.4-3">It requests transmission of a bundle whose payload is the response ADU, whose destination EID is the source EID of the request bundle, and whose source EID is the destination EID of the request bundle. The responder <span class="bcp14">MUST</span> set the lifetime of the response bundle so that it expires no later than the request bundle (<a href="#bundle-times" class="auto internal xref">Section 7.1</a>), and <span class="bcp14">SHOULD NOT</span> send a response ADU after the request bundle has expired.<a href="#section-7.4-3" class="pilcrow">¶</a></p>
+<p id="section-7.4-4">A responder sends one response ADU for each request it processes, except as specified in <a href="#extended" class="auto internal xref">Section 8</a>.<a href="#section-7.4-4" class="pilcrow">¶</a></p>
+<p id="section-7.4-5">A requester measures the transit of a response from the creation of the bundle that carries it (<a href="#age" class="auto internal xref">Section 10.2</a>). A responder that sends a response some time after generating it, or after receiving it from the origin server, <span class="bcp14">MUST</span> therefore include an Age field that accounts for the delay. This is the case when it answers from a stored response, as <span><a href="https://rfc-editor.org/rfc/rfc9111#section-4" class="relref">Section 4</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> already requires, and when it re-sends a response to a duplicate request (<a href="#processing-request" class="auto internal xref">Section 7.3</a>).<a href="#section-7.4-5" class="pilcrow">¶</a></p>
+<p id="section-7.4-6">When an origin-side gateway cannot complete the exchange with the origin server, it responds with an error response such as 502 (Bad Gateway) or 504 (Gateway Timeout), carrying a Proxy-Status field <span>[<a href="#RFC9209" class="cite xref">RFC9209</a>]</span> that identifies the gateway and the error type, for example "dns_error", "connection_refused", "connection_timeout", "tls_certificate_error", or "http_response_timeout". Clients can then distinguish a failure beyond the origin-side gateway from a failure in the bundle network (<a href="#failure" class="auto internal xref">Section 7.6</a>).<a href="#section-7.4-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="receiving-response">
-<section id="section-7.4">
+<section id="section-7.5">
         <h3 id="name-receiving-a-response">
-<a href="#section-7.4" class="section-number selfRef">7.4. </a><a href="#name-receiving-a-response" class="section-name selfRef">Receiving a Response</a>
+<a href="#section-7.5" class="section-number selfRef">7.5. </a><a href="#name-receiving-a-response" class="section-name selfRef">Receiving a Response</a>
         </h3>
-<p id="section-7.4-1">When an ADU whose message is a response is delivered to a requester, the requester <span class="bcp14">MUST</span> discard it unless both:<a href="#section-7.4-1" class="pilcrow">¶</a></p>
+<p id="section-7.5-1">When an ADU whose message is a response is delivered to a requester, the requester <span class="bcp14">MUST</span> discard it unless both:<a href="#section-7.5-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-7.4-2.1">
-            <p id="section-7.4-2.1.1">the requester has an outstanding exchange with the ADU's correlation identifier; and<a href="#section-7.4-2.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-7.5-2.1">
+            <p id="section-7.5-2.1.1">the requester has an outstanding exchange with the ADU's correlation identifier; and<a href="#section-7.5-2.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.4-2.2">
-            <p id="section-7.4-2.2.1">the source of the bundle that carried the ADU is the endpoint to which the request of that exchange was sent.<a href="#section-7.4-2.2.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.5-2.2">
+            <p id="section-7.5-2.2.1">the source EID of the bundle that carried the ADU is the EID to which the request of that exchange was sent.<a href="#section-7.5-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-7.4-3">This check is the requester's defence against forged responses, which could otherwise poison a shared cache for every client of the gateway; its strength depends on the authentication of the bundle's source (<a href="#admission" class="auto internal xref">Section 12.3</a>).<a href="#section-7.4-3" class="pilcrow">¶</a></p>
-<p id="section-7.4-4">A requester <span class="bcp14">MUST</span> discard a response ADU for an exchange that has already completed, except as specified in <a href="#extended" class="auto internal xref">Section 8</a>. Otherwise, the response completes the exchange. The requester processes the response as an HTTP intermediary or client would: a client-side gateway applies the field handling of <a href="#fields" class="auto internal xref">Section 6.6</a>, calculates the response's age (<a href="#age" class="auto internal xref">Section 10.2</a>), stores it if permitted (<a href="#caching" class="auto internal xref">Section 10.1</a>), and forwards it to the client, or retains it for the client to collect (<a href="#client-facing" class="auto internal xref">Section 10.3</a>).<a href="#section-7.4-4" class="pilcrow">¶</a></p>
-<p id="section-7.4-5">A requester <span class="bcp14">MAY</span> retain an exchange after its deadline has passed, so that a late response to a safe request can still be stored in its cache. Such a response is subject to the same admission check as any other.<a href="#section-7.4-5" class="pilcrow">¶</a></p>
+<p id="section-7.5-3">This check is the requester's defence against forged responses, which could otherwise poison a shared cache for every client of the gateway; its strength depends on the authentication of the bundle's source (<a href="#admission" class="auto internal xref">Section 12.3</a>).<a href="#section-7.5-3" class="pilcrow">¶</a></p>
+<p id="section-7.5-4">A requester <span class="bcp14">MUST</span> discard a response ADU for an exchange that has already completed, except as specified in <a href="#extended" class="auto internal xref">Section 8</a>. Otherwise, the response completes the exchange. The requester processes the response as an HTTP intermediary or client would: a client-side gateway applies the field handling of <a href="#fields" class="auto internal xref">Section 6.6</a>, calculates the response's age (<a href="#age" class="auto internal xref">Section 10.2</a>), stores it if permitted (<a href="#caching" class="auto internal xref">Section 10.1</a>), and forwards it to the client, or retains it for the client to collect (<a href="#client-facing" class="auto internal xref">Section 10.3</a>).<a href="#section-7.5-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="failure">
-<section id="section-7.5">
+<section id="section-7.6">
         <h3 id="name-deadlines-and-failure">
-<a href="#section-7.5" class="section-number selfRef">7.5. </a><a href="#name-deadlines-and-failure" class="section-name selfRef">Deadlines and Failure</a>
+<a href="#section-7.6" class="section-number selfRef">7.6. </a><a href="#name-deadlines-and-failure" class="section-name selfRef">Deadlines and Failure</a>
         </h3>
-<p id="section-7.5-1">A requester assigns each exchange a deadline, after which, if no response has been received, the exchange has failed. The deadline <span class="bcp14">SHOULD</span> be no earlier than the expiry of the request bundle's lifetime plus an allowance for processing at the responder and for the transit of the response.<a href="#section-7.5-1" class="pilcrow">¶</a></p>
-<p id="section-7.5-2">When an exchange fails, a client-side gateway answers any client waiting for it with 504 (Gateway Timeout) and a Proxy-Status field with the error type "http_response_timeout".<a href="#section-7.5-2" class="pilcrow">¶</a></p>
-<p id="section-7.5-3">A requester that receives a bundle status report (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-6.1.1" class="relref">Section 6.1.1</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>) asserting that the request bundle was deleted <span class="bcp14">MAY</span> fail the exchange immediately. A client-side gateway that does so <span class="bcp14">SHOULD</span> answer with 504 (Gateway Timeout) and a Proxy-Status field with the error type "bp_bundle_deleted" (<a href="#iana-proxy-status" class="auto internal xref">Section 13.3</a>), whose "bp-reason" parameter carries the reason code from the status report.<a href="#section-7.5-3" class="pilcrow">¶</a></p>
-<p id="section-7.5-4">As with any 504 response, the failure of an exchange does not show that the request was not processed: the response could have been lost or delayed after the responder acted on it.<a href="#section-7.5-4" class="pilcrow">¶</a></p>
-<p id="section-7.5-5">After a safe request fails, a client-side gateway <span class="bcp14">SHOULD NOT</span> send the same request again until a configured interval has passed, so that repeated client requests do not send a stream of bundles toward an unreachable responder.<a href="#section-7.5-5" class="pilcrow">¶</a></p>
+<p id="section-7.6-1">A requester assigns each exchange a deadline, after which, if no response has been received, the exchange has failed. The deadline <span class="bcp14">SHOULD</span> be the expiry of the request bundle, or of the latest retry (<a href="#sending-request" class="auto internal xref">Section 7.2</a>): no response can arrive after it, since a response bundle expires no later than the request bundle (<a href="#sending-response" class="auto internal xref">Section 7.4</a>).<a href="#section-7.6-1" class="pilcrow">¶</a></p>
+<p id="section-7.6-2">When an exchange fails, a client-side gateway answers any client waiting for it with 504 (Gateway Timeout) and a Proxy-Status field with the error type "http_response_timeout".<a href="#section-7.6-2" class="pilcrow">¶</a></p>
+<p id="section-7.6-3">A requester that receives a bundle status report (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-6.1.1" class="relref">Section 6.1.1</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>) asserting that the request bundle was deleted <span class="bcp14">MAY</span> fail the exchange immediately. A client-side gateway that does so <span class="bcp14">SHOULD</span> answer with 504 (Gateway Timeout) and a Proxy-Status field with the error type "bp_bundle_deleted" (<a href="#iana-proxy-status" class="auto internal xref">Section 13.3</a>), whose "bp-reason" parameter carries the reason code from the status report.<a href="#section-7.6-3" class="pilcrow">¶</a></p>
+<p id="section-7.6-4">As with any 504 response, the failure of an exchange does not show that the request was not processed: the response could have been lost or delayed after the responder acted on it.<a href="#section-7.6-4" class="pilcrow">¶</a></p>
+<p id="section-7.6-5">After a safe request fails, a client-side gateway <span class="bcp14">SHOULD NOT</span> send the same request again until a configured interval has passed, so that repeated client requests do not send a stream of bundles toward an unreachable responder.<a href="#section-7.6-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2022,7 +1997,7 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
         <h3 id="name-incremental-responses">
 <a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-incremental-responses" class="section-name selfRef">Incremental Responses</a>
         </h3>
-<p id="section-8.1-1">Some responses are produced slowly: an origin server sends the header section promptly, then content over an extended period. No responder can send content that has not yet been produced, and holding the response until it is complete delays every byte of it. A requester that is able to assemble a response from parts indicates so by including the incremental option (key 3) in its request ADU.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<p id="section-8.1-1">Some responses are produced slowly: an origin server sends the header section promptly, then content over an extended period. No responder can send content that has not yet been produced, and holding the response until it is complete delays every byte of it. A requester that is able to assemble a response from parts indicates so by including the incremental option (key 1) in its request ADU.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
 <p id="section-8.1-2">A responder that receives a request with the incremental option <span class="bcp14">MAY</span> return the response as a sequence of 206 (Partial Content) responses (<span><a href="https://rfc-editor.org/rfc/rfc9110#section-15.3.7" class="relref">Section 15.3.7</a> of [<a href="#RFC9110" class="cite xref">RFC9110</a>]</span>), each in its own response ADU with the request's correlation identifier. Each of these responses:<a href="#section-8.1-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-8.1-3.1">
@@ -2036,7 +2011,7 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
 </li>
         </ul>
 <p id="section-8.1-4">The responder chooses when to send each part. A response that is complete before the responder would send its first part is sent as a single ordinary response.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
-<p id="section-8.1-5">The requester combines the parts as <span><a href="https://rfc-editor.org/rfc/rfc9111#section-3.3" class="relref">Section 3.3</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> and <span><a href="https://rfc-editor.org/rfc/rfc9111#section-3.4" class="relref">Section 3.4</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> allow a cache to combine partial content; their order of arrival is immaterial. The exchange remains open until the requester holds the complete representation or its deadline passes, and each part received extends the deadline. Once the complete length is known, the requester can recover any missing range with an ordinary range request in a new exchange. A requester <span class="bcp14">MUST NOT</span> serve the combined representation as complete until it is complete; it <span class="bcp14">MAY</span> answer a client's range request from content already received (<span><a href="https://rfc-editor.org/rfc/rfc9111#section-3.3" class="relref">Section 3.3</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>).<a href="#section-8.1-5" class="pilcrow">¶</a></p>
+<p id="section-8.1-5">The requester combines the parts as <span><a href="https://rfc-editor.org/rfc/rfc9111#section-3.3" class="relref">Section 3.3</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> and <span><a href="https://rfc-editor.org/rfc/rfc9111#section-3.4" class="relref">Section 3.4</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> allow a cache to combine partial content; their order of arrival is immaterial. The exchange remains open until the requester holds the complete representation or its deadline passes; a requester that asks for an incremental response sets the lifetime of the request bundle to cover the time the response will take to complete. Once the complete length is known, the requester can recover any missing range with an ordinary range request in a new exchange. A requester <span class="bcp14">MUST NOT</span> serve the combined representation as complete until it is complete; it <span class="bcp14">MAY</span> answer a client's range request from content already received (<span><a href="https://rfc-editor.org/rfc/rfc9111#section-3.3" class="relref">Section 3.3</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>).<a href="#section-8.1-5" class="pilcrow">¶</a></p>
 <p id="section-8.1-6">A responder <span class="bcp14">SHOULD</span> bound the resources it spends on any one incremental response, such as bytes, parts, and elapsed time. A responder that abandons a response before it is complete <span class="bcp14">SHOULD</span> send a final response ADU containing a 502 (Bad Gateway) response with a Proxy-Status field (for example, with error type "http_response_body_size"). On receiving it, the requester fails the exchange and <span class="bcp14">MUST NOT</span> treat the content received so far as a complete representation.<a href="#section-8.1-6" class="pilcrow">¶</a></p>
 <p id="section-8.1-7"><span class="cref">An origin-side gateway might need to supply a strong validator for a response that has none. Whether, and how, it should do so without creating a validator the origin server would not recognise is an open issue (<a href="#open-issues" class="auto internal xref">Appendix C</a>).</span><a href="#section-8.1-7" class="pilcrow">¶</a></p>
 </section>
@@ -2061,10 +2036,10 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
             <p id="section-8.2-5.3.1">answers a request for segment K, once that segment is closed, with a 200 (OK) response of type <code>text/event-stream</code> whose content is the complete events of the segment, in a response ADU carrying the segment option set to K;<a href="#section-8.2-5.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.2-5.4">
-            <p id="section-8.2-5.4.1">holds a request for a segment that is still open until the segment closes, and closes a segment early, even if it holds no events, so that its response can be delivered before the request's respond-by time; and<a href="#section-8.2-5.4.1" class="pilcrow">¶</a></p>
+            <p id="section-8.2-5.4.1">holds a request for a segment that is still open until the segment closes, and closes a segment early, even if it holds no events, so that its response can be delivered before the request bundle expires; and<a href="#section-8.2-5.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.2-5.5">
-            <p id="section-8.2-5.5.1">marks the last segment, when the origin server ends the stream, with the final-segment option (key 4).<a href="#section-8.2-5.5.1" class="pilcrow">¶</a></p>
+            <p id="section-8.2-5.5.1">marks the last segment, when the origin server ends the stream, with the final-segment option (key 2).<a href="#section-8.2-5.5.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-8.2-6">A closed segment never changes, so a requester can store it and serve it to any number of local clients. A client-side gateway serves each client a genuine <code>text/event-stream</code> response on a connection that it holds open, releasing events strictly in order; a missing segment holds back later ones until it is recovered. The gateway requests further segments while it has clients for the stream, and <span class="bcp14">MAY</span> request segment K+1 before segment K arrives, to hide the latency of the path. It maps a client's Last-Event-ID to a position within the segments it holds.<a href="#section-8.2-6" class="pilcrow">¶</a></p>
@@ -2098,7 +2073,7 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
 <span class="break"></span><dl class="dlParallel" id="section-10.1-2">
           <dt id="section-10.1-2.1">Collapsing requests:</dt>
           <dd style="margin-left: 1.5em" id="section-10.1-2.2">
-            <p id="section-10.1-2.2.1">A client-side gateway <span class="bcp14">SHOULD</span> collapse requests (<span><a href="https://rfc-editor.org/rfc/rfc9111#section-4" class="relref">Section 4</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>): when a request could be satisfied by the response to a safe request for which an exchange is already outstanding, the gateway awaits that response instead of starting another exchange. The key on which requests are collapsed <span class="bcp14">MUST</span> distinguish requests made with different credentials, and <span class="bcp14">SHOULD</span> include the request fields to which the response is expected to vary. A gateway <span class="bcp14">MUST NOT</span> collapse unsafe requests.<a href="#section-10.1-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-10.1-2.2.1">A client-side gateway <span class="bcp14">SHOULD</span> collapse requests (<span><a href="https://rfc-editor.org/rfc/rfc9111#section-4" class="relref">Section 4</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>): when a request could be satisfied by the response to a safe request for which an exchange is already outstanding, the gateway awaits that response instead of starting another exchange. The key on which requests are collapsed <span class="bcp14">MUST</span> distinguish requests made with different credentials, whether carried in Authorization or Cookie fields or otherwise, and <span class="bcp14">SHOULD</span> include the request fields to which the response is expected to vary. A gateway <span class="bcp14">MUST NOT</span> collapse unsafe requests.<a href="#section-10.1-2.2.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 <dt id="section-10.1-2.3">Validation:</dt>
@@ -2135,21 +2110,15 @@ dtn-time = uint           ; RFC 9171, Section 4.2.6
 <a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-calculating-age" class="section-name selfRef">Calculating Age</a>
         </h3>
 <p id="section-10.2-1">A requester that stores or forwards a response calculates its age as <span><a href="https://rfc-editor.org/rfc/rfc9111#section-4.2.3" class="relref">Section 4.2.3</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> specifies. That calculation's corrected_age_value adds to the received Age value the response_delay: the time between sending the request and receiving the response, the full round trip. Over a bundle path that round trip can be long, and much of it elapses before the response exists: the request's transit, and any time it waited for a contact. Charging all of it against the response's freshness lifetime roughly halves the usable lifetime on a symmetric path, and on a long-delay path can make every response stale on arrival.<a href="#section-10.2-1" class="pilcrow">¶</a></p>
-<p id="section-10.2-2">When a response ADU carries the service-time option (<a href="#service-time" class="auto internal xref">Section 6.4.1</a>) and the requester's clock is accurate, the requester can measure the time the response actually spent in transit:<a href="#section-10.2-2" class="pilcrow">¶</a></p>
+<p id="section-10.2-2">The bundle age of the response bundle (<a href="#bundle-times" class="auto internal xref">Section 7.1</a>), as reported by the requester's BPA when the response is delivered, is the time that has elapsed since the responder requested its transmission: the time the response spent in transit. The requester <span class="bcp14">MAY</span> use it as transit_delay in place of response_delay:<a href="#section-10.2-2" class="pilcrow">¶</a></p>
 <div class="lang-pseudocode sourcecode" id="section-10.2-3">
 <pre>
-transit_delay = max(0, response_time - service_time)
+corrected_age_value = age_value + transit_delay
 </pre><a href="#section-10.2-3" class="pilcrow">¶</a>
 </div>
-<p id="section-10.2-4">and <span class="bcp14">MAY</span> use transit_delay in place of response_delay:<a href="#section-10.2-4" class="pilcrow">¶</a></p>
-<div class="lang-pseudocode sourcecode" id="section-10.2-5">
-<pre>
-corrected_age_value = age_value + transit_delay
-</pre><a href="#section-10.2-5" class="pilcrow">¶</a>
-</div>
-<p id="section-10.2-6">The result is the response's age when the responder sent it, plus the time it has since spent in transit. Where the BPA reports the age of the response bundle on delivery, from the bundle's creation timestamp or its Bundle Age block (<span><a href="https://rfc-editor.org/rfc/rfc9171#section-4.4.2" class="relref">Section 4.4.2</a> of [<a href="#RFC9171" class="cite xref">RFC9171</a>]</span>), the requester <span class="bcp14">MAY</span> use that age as transit_delay; with the Bundle Age block, this needs no synchronisation of clocks.<a href="#section-10.2-6" class="pilcrow">¶</a></p>
-<p id="section-10.2-7">The apparent_age calculation of <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> would also exclude the request's transit, but relies on the origin server's clock, in the Date field, being synchronised with the requester's. A gateway cannot know whether an origin server's clock is synchronised. The service-time option is generated by the responder, a BP node that is expected to keep accurate time, and is covered by the same integrity protection as the rest of the ADU (<a href="#timing" class="auto internal xref">Section 12.8</a>).<a href="#section-10.2-7" class="pilcrow">¶</a></p>
-<p id="section-10.2-8">If service_time is later than response_time by more than a configured tolerance, the two clocks are not adequately synchronised, and the requester <span class="bcp14">MUST NOT</span> use service-time to calculate age. A requester <span class="bcp14">MUST NOT</span> treat a response as having an age of zero when it arrives; that would conceal the transit delay that the Age field exists to disclose.<a href="#section-10.2-8" class="pilcrow">¶</a></p>
+<p id="section-10.2-4">The result is the response's age when the responder sent it, plus the time it has since spent in transit. Any delay at the responder before it sent the response is carried in the Age field (<a href="#sending-response" class="auto internal xref">Section 7.4</a>).<a href="#section-10.2-4" class="pilcrow">¶</a></p>
+<p id="section-10.2-5">The apparent_age calculation of <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> would also exclude the request's transit, but relies on the origin server's clock, in the Date field, being synchronised with the requester's. A gateway cannot know whether an origin server's clock is synchronised. Bundle age is instead determined by the BPAs on the path, from the creation timestamp where the clocks of the responder's and requester's nodes are accurate, or from the Bundle Age block, which needs no synchronised clocks (<a href="#timing" class="auto internal xref">Section 12.9</a>).<a href="#section-10.2-5" class="pilcrow">¶</a></p>
+<p id="section-10.2-6">A requester whose BPA does not report the bundle age of a response uses response_delay as <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> specifies. A requester <span class="bcp14">MUST NOT</span> treat a response as having an age of zero when it arrives; that would conceal the transit delay that the Age field exists to disclose.<a href="#section-10.2-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="client-facing">
@@ -2209,12 +2178,12 @@ corrected_age_value = age_value + transit_delay
 <span class="break"></span><dl class="dlParallel" id="section-11-1">
         <dt id="section-11-1.1">Lifetimes and deadlines:</dt>
         <dd style="margin-left: 1.5em" id="section-11-1.2">
-          <p id="section-11-1.2.1">Bundle lifetimes, respond-by times, and exchange deadlines need to match the latency of the path. Contact plans, where available, give the best estimates. Values that are too short fail exchanges that would have completed; values that are too long hold resources for responses that will never be used.<a href="#section-11-1.2.1" class="pilcrow">¶</a></p>
+          <p id="section-11-1.2.1">Bundle lifetimes, and so exchange deadlines, need to match the latency of the path; contact plans, where available, give the best estimates. Because a response bundle expires no later than the request bundle it answers, a request that is delivered late in its lifetime leaves little time for the response to return, so the lifetime of the request bundle needs to cover both directions. Values that are too short fail exchanges that would have completed; values that are too long hold resources for responses that will never be used.<a href="#section-11-1.2.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-11-1.3">Clocks:</dt>
         <dd style="margin-left: 1.5em" id="section-11-1.4">
-          <p id="section-11-1.4.1">The service-time and respond-by options are useful only between nodes whose clocks are accurate. BP nodes generally keep accurate time, but a deployment with clockless nodes relies on the Bundle Age block for age calculation (<a href="#age" class="auto internal xref">Section 10.2</a>) and on bundle lifetimes alone to bound exchanges.<a href="#section-11-1.4.1" class="pilcrow">¶</a></p>
+          <p id="section-11-1.4.1">Exchange deadlines and age calculation (<a href="#age" class="auto internal xref">Section 10.2</a>) depend on the BPAs' determination of bundle age. BP nodes generally keep accurate time; a deployment with clockless nodes relies on the Bundle Age block, which every node on the path then needs to maintain.<a href="#section-11-1.4.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-11-1.5">Message size:</dt>
@@ -2259,7 +2228,25 @@ corrected_age_value = age_value + transit_delay
         <h3 id="name-protecting-the-bundle-hop">
 <a href="#section-12.2" class="section-number selfRef">12.2. </a><a href="#name-protecting-the-bundle-hop" class="section-name selfRef">Protecting the Bundle Hop</a>
         </h3>
-<p id="section-12.2-1">Requesters and responders <span class="bcp14">MUST</span> support BPSec <span>[<a href="#RFC9172" class="cite xref">RFC9172</a>]</span> with the default security contexts <span>[<a href="#RFC9173" class="cite xref">RFC9173</a>]</span>, and <span class="bcp14">SHOULD</span> protect every ADU with a Block Integrity Block (BIB) and a Block Confidentiality Block (BCB) targeting the payload block. The BIB <span class="bcp14">SHOULD</span> include the primary block in its integrity scope (the "Include primary block" flag of <span><a href="https://rfc-editor.org/rfc/rfc9173#section-3.3.3" class="relref">Section 3.3.3</a> of [<a href="#RFC9173" class="cite xref">RFC9173</a>]</span>), so that the source of the bundle, on which response admission depends, is authenticated. Without BPSec, an attacker on the path can read requests and responses, including credentials, and can forge responses. A deployment that relies on protection at another layer should document that dependency.<a href="#section-12.2-1" class="pilcrow">¶</a></p>
+<p id="section-12.2-1">Requesters and responders <span class="bcp14">MUST</span> support BPSec <span>[<a href="#RFC9172" class="cite xref">RFC9172</a>]</span>. This document does not mandate a particular security context; the choice is left to the deployment, for example the COSE context <span>[<a href="#I-D.ietf-dtn-bpsec-cose" class="cite xref">I-D.ietf-dtn-bpsec-cose</a>]</span>. Whatever the context, the protection of each ADU needs to provide three things:<a href="#section-12.2-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-12.2-2">
+          <dt id="section-12.2-2.1">Confidentiality and integrity of the ADU:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.2-2.2">
+            <p id="section-12.2-2.2.1">Every ADU <span class="bcp14">SHOULD</span> be protected by a Block Confidentiality Block (BCB) that targets the payload block. Every BCB security context provides authenticated encryption (<span><a href="https://rfc-editor.org/rfc/rfc9172#section-3.8" class="relref">Section 3.8</a> of [<a href="#RFC9172" class="cite xref">RFC9172</a>]</span>), so the BCB both conceals the ADU and protects its integrity.<a href="#section-12.2-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-12.2-2.3">Integrity of the primary block:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.2-2.4">
+            <p id="section-12.2-2.4.1">The BCB's security context <span class="bcp14">SHOULD</span> include the primary block in its additional authenticated data, so that the primary block, which a BCB cannot conceal, is bound to the ADU. The primary block carries the source EID of the bundle, on which response admission depends, and its creation timestamp and lifetime, which bound the exchange.<a href="#section-12.2-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-12.2-2.5">Authentication of the source:</dt>
+          <dd style="margin-left: 1.5em" id="section-12.2-2.6">
+            <p id="section-12.2-2.6.1">Integrity alone does not show who produced the bundle. Where a BCB is keyed so that only the two peers could have produced it, for example with a key shared between them or with key agreement between their static keys, the BCB also authenticates the source of the bundle. Where it is not, for example when the key is agreed using an ephemeral key of the sender's and the recipient's public key alone, anyone who knows the recipient's public key can produce a valid BCB, with any source EID in its primary block. A sender <span class="bcp14">SHOULD</span> then also protect the payload with a Block Integrity Block (BIB) that is signed with a key bound to the bundle's source EID, and that the BCB also encrypts (<span><a href="https://rfc-editor.org/rfc/rfc9172#section-3.9" class="relref">Section 3.9</a> of [<a href="#RFC9172" class="cite xref">RFC9172</a>]</span>). A recipient <span class="bcp14">MUST NOT</span> treat the source of a bundle as authenticated unless one of these conditions holds.<a href="#section-12.2-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-12.2-3">Without BPSec, an attacker on the path can read requests and responses, including credentials, and can forge responses. A deployment that relies on protection at another layer should document that dependency.<a href="#section-12.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="admission">
@@ -2267,7 +2254,7 @@ corrected_age_value = age_value + transit_delay
         <h3 id="name-response-admission-and-cach">
 <a href="#section-12.3" class="section-number selfRef">12.3. </a><a href="#name-response-admission-and-cach" class="section-name selfRef">Response Admission and Cache Poisoning</a>
         </h3>
-<p id="section-12.3-1">A requester accepts a response only for an outstanding exchange, and only from the endpoint to which it sent the request (<a href="#receiving-response" class="auto internal xref">Section 7.4</a>). Where the source of the bundle is authenticated, no third party can inject a response. A forged response accepted by a client-side gateway could otherwise be stored in its shared cache and served to every client. The parts of an incremental response must also share a strong validator (<a href="#incremental" class="auto internal xref">Section 8.1</a>).<a href="#section-12.3-1" class="pilcrow">¶</a></p>
+<p id="section-12.3-1">A requester accepts a response only for an outstanding exchange, and only from the endpoint to which it sent the request (<a href="#receiving-response" class="auto internal xref">Section 7.5</a>). Where the source of the bundle is authenticated, no third party can inject a response. A forged response accepted by a client-side gateway could otherwise be stored in its shared cache and served to every client. The parts of an incremental response must also share a strong validator (<a href="#incremental" class="auto internal xref">Section 8.1</a>).<a href="#section-12.3-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="resolution-integrity">
@@ -2291,7 +2278,7 @@ corrected_age_value = age_value + transit_delay
         <h3 id="name-server-side-request-forgery">
 <a href="#section-12.6" class="section-number selfRef">12.6. </a><a href="#name-server-side-request-forgery" class="section-name selfRef">Server-Side Request Forgery</a>
         </h3>
-<p id="section-12.6-1">An origin-side gateway fetches whatever a request names, which makes it a means of reaching hosts on its own network. An origin-side gateway <span class="bcp14">SHOULD</span> refuse, unless configured otherwise, to contact private, loopback, and link-local addresses, including cloud metadata services, and <span class="bcp14">SHOULD</span> support restricting the origins it will contact to a configured set. It needs to apply these checks to the addresses that names resolve to, not only to literal addresses in the target URI.<a href="#section-12.6-1" class="pilcrow">¶</a></p>
+<p id="section-12.6-1">An origin-side gateway fetches whatever a request names, which makes it a means of reaching hosts on its own network. An origin-side gateway <span class="bcp14">SHOULD</span> refuse, unless configured otherwise, to contact private, loopback, and link-local addresses, including cloud metadata services, and <span class="bcp14">SHOULD</span> support restricting the origins it will contact to a configured set. It needs to apply these checks to the addresses that names resolve to, not only to literal addresses in the target URI. A gateway that refuses a request because of the address it would contact responds with 502 (Bad Gateway) and a Proxy-Status field <span>[<a href="#RFC9209" class="cite xref">RFC9209</a>]</span> with the error type "destination_ip_prohibited"; one that refuses it because the origin is not in its configured set responds with 403 (Forbidden) and the error type "http_request_denied".<a href="#section-12.6-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="replay">
@@ -2299,31 +2286,39 @@ corrected_age_value = age_value + transit_delay
         <h3 id="name-replay">
 <a href="#section-12.7" class="section-number selfRef">12.7. </a><a href="#name-replay" class="section-name selfRef">Replay</a>
         </h3>
-<p id="section-12.7-1">The default security contexts of BPSec <span>[<a href="#RFC9173" class="cite xref">RFC9173</a>]</span> do not prevent replay. A replayed request bundle carrying an unsafe request could cause the request to be acted on again. The responder's detection of duplicate requests (<a href="#processing-request" class="auto internal xref">Section 7.2</a>) suppresses replays while its records are retained, and the respond-by option (<a href="#respond-by" class="auto internal xref">Section 6.4.2</a>), which the BIB protects, lets a responder reject requests after that time. Together, these bound the window in which a replay can have any effect. A requester <span class="bcp14">SHOULD</span> include respond-by in every request whose method is not idempotent.<a href="#section-12.7-1" class="pilcrow">¶</a></p>
+<p id="section-12.7-1">BPSec does not itself prevent replay (<span><a href="https://rfc-editor.org/rfc/rfc9172#section-8.2.4" class="relref">Section 8.2.4</a> of [<a href="#RFC9172" class="cite xref">RFC9172</a>]</span>). A replayed request bundle carrying a request whose method is not idempotent could cause the request to be acted on again. The responder's detection of duplicate requests (<a href="#processing-request" class="auto internal xref">Section 7.3</a>) suppresses replays while its records are retained, and a replayed bundle expires when the original does, since its creation timestamp and lifetime are in the primary block, which the BCB authenticates. Together, these bound the window in which a replay can have any effect. The bound does not hold for a bundle whose creation time is zero: its age is carried in the Bundle Age block, which each forwarding node updates and so cannot be protected end to end, and a replaying node can reset it. A requester <span class="bcp14">SHOULD</span> send each request whose method is not idempotent in a bundle with a non-zero creation timestamp, and with a lifetime no longer than the exchange needs.<a href="#section-12.7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="forged-status-reports">
+<section id="section-12.8">
+        <h3 id="name-forged-status-reports">
+<a href="#section-12.8" class="section-number selfRef">12.8. </a><a href="#name-forged-status-reports" class="section-name selfRef">Forged Status Reports</a>
+        </h3>
+<p id="section-12.8-1">A bundle status report is generated by whichever node deleted the bundle, not by the responder, so a requester cannot check its source against the exchange. A requester that fails an exchange on receiving a deletion status report (<a href="#failure" class="auto internal xref">Section 7.6</a>) can be made to fail it early by a forged report. Since the request can still be delivered and acted on, this denies the client its response rather than preventing the request. A requester <span class="bcp14">SHOULD</span> act on a deletion status report only if it is protected by BPSec, for example by a BIB whose source the requester trusts, or else treat it as a hint and wait for the exchange's deadline.<a href="#section-12.8-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="timing">
-<section id="section-12.8">
+<section id="section-12.9">
         <h3 id="name-timing-integrity">
-<a href="#section-12.8" class="section-number selfRef">12.8. </a><a href="#name-timing-integrity" class="section-name selfRef">Timing Integrity</a>
+<a href="#section-12.9" class="section-number selfRef">12.9. </a><a href="#name-timing-integrity" class="section-name selfRef">Timing Integrity</a>
         </h3>
-<p id="section-12.8-1">The service-time option determines the age that a requester computes for a response, and so how long the response is served. An attacker that could alter it could make a response appear fresher, or more stale, than it is. The option is protected by the BIB along with the rest of the ADU, and a requester applies a tolerance check before using it (<a href="#age" class="auto internal xref">Section 10.2</a>).<a href="#section-12.8-1" class="pilcrow">¶</a></p>
+<p id="section-12.9-1">The bundle age of a response determines the age that a requester computes for it (<a href="#age" class="auto internal xref">Section 10.2</a>), and so how long the response is served. An attacker that could alter it could make a response appear fresher, or more stale, than it is. Where the response bundle has a non-zero creation timestamp, that timestamp is in the primary block, which the BCB authenticates. Where its creation time is zero, the age is taken from the Bundle Age block, which each forwarding node updates and so cannot be protected end to end; a deployment that relies on clockless nodes trusts the nodes on the path to maintain it honestly.<a href="#section-12.9-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="resource-exhaustion">
-<section id="section-12.9">
+<section id="section-12.10">
         <h3 id="name-resource-exhaustion">
-<a href="#section-12.9" class="section-number selfRef">12.9. </a><a href="#name-resource-exhaustion" class="section-name selfRef">Resource Exhaustion</a>
+<a href="#section-12.10" class="section-number selfRef">12.10. </a><a href="#name-resource-exhaustion" class="section-name selfRef">Resource Exhaustion</a>
         </h3>
-<p id="section-12.9-1">A small request can elicit a large response, and an incremental response or an event stream can elicit a long sequence of them. Responders need to bound the resources any one request can consume, and both roles need to bound the number of outstanding exchanges, held client connections, and event-stream subscriptions. Requests for bundle status reports add traffic to the bundle network and should be limited accordingly.<a href="#section-12.9-1" class="pilcrow">¶</a></p>
+<p id="section-12.10-1">A small request can elicit a large response, and an incremental response or an event stream can elicit a long sequence of them. Responders need to bound the resources any one request can consume, and both roles need to bound the number of outstanding exchanges, held client connections, and event-stream subscriptions. Requests for bundle status reports add traffic to the bundle network and should be limited accordingly.<a href="#section-12.10-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="privacy">
-<section id="section-12.10">
+<section id="section-12.11">
         <h3 id="name-credentials-and-privacy">
-<a href="#section-12.10" class="section-number selfRef">12.10. </a><a href="#name-credentials-and-privacy" class="section-name selfRef">Credentials and Privacy</a>
+<a href="#section-12.11" class="section-number selfRef">12.11. </a><a href="#name-credentials-and-privacy" class="section-name selfRef">Credentials and Privacy</a>
         </h3>
-<p id="section-12.10-1">Authorization and Cookie fields cross the bundle network inside ADUs and need the confidentiality that a BCB provides. Client certificates are verified at the client-side gateway and never forwarded (<a href="#fields" class="auto internal xref">Section 6.6</a>). A shared cache does not store responses to requests with Authorization fields unless the origin server permits it (<span><a href="https://rfc-editor.org/rfc/rfc9111#section-3.5" class="relref">Section 3.5</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>), and gateways do not collapse requests made with different credentials (<a href="#caching" class="auto internal xref">Section 10.1</a>). Via pseudonyms (<a href="#fields" class="auto internal xref">Section 6.6</a>) avoid disclosing the topology of gateway deployments. Padding Binary HTTP messages (<a href="#message" class="auto internal xref">Section 6.5</a>) can obscure their lengths from an observer when the ADU is encrypted.<a href="#section-12.10-1" class="pilcrow">¶</a></p>
+<p id="section-12.11-1">Authorization and Cookie fields cross the bundle network inside ADUs and need the confidentiality that a BCB provides. Client certificates are verified at the client-side gateway and never forwarded (<a href="#fields" class="auto internal xref">Section 6.6</a>). A shared cache does not store responses to requests with Authorization fields unless the origin server permits it (<span><a href="https://rfc-editor.org/rfc/rfc9111#section-3.5" class="relref">Section 3.5</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>), and gateways do not collapse requests made with different credentials (<a href="#caching" class="auto internal xref">Section 10.1</a>). Via pseudonyms (<a href="#fields" class="auto internal xref">Section 6.6</a>) avoid disclosing the topology of gateway deployments. Padding Binary HTTP messages (<a href="#message" class="auto internal xref">Section 6.5</a>) can obscure their lengths from an observer when the ADU is encrypted.<a href="#section-12.11-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2516,10 +2511,6 @@ corrected_age_value = age_value + transit_delay
         <dd>
 <span class="refAuthor">Birrane, III, E.</span> and <span class="refAuthor">K. McKeever</span>, <span class="refTitle">"Bundle Protocol Security (BPSec)"</span>, <span class="seriesInfo">RFC 9172</span>, <span class="seriesInfo">DOI 10.17487/RFC9172</span>, <time datetime="2022-01" class="refDate">January 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9172">https://www.rfc-editor.org/rfc/rfc9172</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-<dt id="RFC9173">[RFC9173]</dt>
-        <dd>
-<span class="refAuthor">Birrane, III, E.</span>, <span class="refAuthor">White, A.</span>, and <span class="refAuthor">S. Heiner</span>, <span class="refTitle">"Default Security Contexts for Bundle Protocol Security (BPSec)"</span>, <span class="seriesInfo">RFC 9173</span>, <span class="seriesInfo">DOI 10.17487/RFC9173</span>, <time datetime="2022-01" class="refDate">January 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9173">https://www.rfc-editor.org/rfc/rfc9173</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="RFC9209">[RFC9209]</dt>
         <dd>
 <span class="refAuthor">Nottingham, M.</span> and <span class="refAuthor">P. Sikora</span>, <span class="refTitle">"The Proxy-Status HTTP Response Header Field"</span>, <span class="seriesInfo">RFC 9209</span>, <span class="seriesInfo">DOI 10.17487/RFC9209</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9209">https://www.rfc-editor.org/rfc/rfc9209</a>&gt;</span>. </dd>
@@ -2556,6 +2547,10 @@ corrected_age_value = age_value + transit_delay
 <dt id="I-D.ietf-core-coap-bp">[I-D.ietf-core-coap-bp]</dt>
         <dd>
 <span class="refAuthor">Gomez, C.</span> and <span class="refAuthor">A. Calveras</span>, <span class="refTitle">"Constrained Application Protocol (CoAP) over Bundle Protocol (BP)"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-core-coap-bp-04</span>, <time datetime="2026-07-05" class="refDate">5 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-core-coap-bp-04">https://datatracker.ietf.org/doc/html/draft-ietf-core-coap-bp-04</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.ietf-dtn-bpsec-cose">[I-D.ietf-dtn-bpsec-cose]</dt>
+        <dd>
+<span class="refAuthor">Sipos, B.</span>, <span class="refTitle">"Bundle Protocol Security (BPSec) COSE Context"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-dtn-bpsec-cose-17</span>, <time datetime="2026-08-03" class="refDate">3 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-dtn-bpsec-cose-17">https://datatracker.ietf.org/doc/html/draft-ietf-dtn-bpsec-cose-17</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="I-D.ietf-httpapi-idempotency-key-header">[I-D.ietf-httpapi-idempotency-key-header]</dt>
         <dd>
@@ -2629,6 +2624,10 @@ corrected_age_value = age_value + transit_delay
         <dd>
 <span class="refAuthor">Bishop, M., Ed.</span>, <span class="refTitle">"HTTP/3"</span>, <span class="seriesInfo">RFC 9114</span>, <span class="seriesInfo">DOI 10.17487/RFC9114</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9114">https://www.rfc-editor.org/rfc/rfc9114</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC9173">[RFC9173]</dt>
+        <dd>
+<span class="refAuthor">Birrane, III, E.</span>, <span class="refAuthor">White, A.</span>, and <span class="refAuthor">S. Heiner</span>, <span class="refTitle">"Default Security Contexts for Bundle Protocol Security (BPSec)"</span>, <span class="seriesInfo">RFC 9173</span>, <span class="seriesInfo">DOI 10.17487/RFC9173</span>, <time datetime="2022-01" class="refDate">January 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9173">https://www.rfc-editor.org/rfc/rfc9173</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC9213">[RFC9213]</dt>
         <dd>
 <span class="refAuthor">Ludin, S.</span>, <span class="refAuthor">Nottingham, M.</span>, and <span class="refAuthor">Y. Wu</span>, <span class="refTitle">"Targeted HTTP Cache Control"</span>, <span class="seriesInfo">RFC 9213</span>, <span class="seriesInfo">DOI 10.17487/RFC9213</span>, <time datetime="2022-06" class="refDate">June 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9213">https://www.rfc-editor.org/rfc/rfc9213</a>&gt;</span>. </dd>
@@ -2677,7 +2676,7 @@ corrected_age_value = age_value + transit_delay
         <h3 id="name-request">
 <a href="#appendix-A.1" class="section-number selfRef">A.1. </a><a href="#name-request" class="section-name selfRef">Request</a>
         </h3>
-<p id="appendix-A.1-1">The client-side gateway sends the request at 11:40:00 UTC on 23 October 2026, in a bundle with a lifetime of 30 minutes. It will wait for the response until 12:40:00, which it states in the respond-by option. The request message is:<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.1-1">The client-side gateway sends the request at 11:40:00 UTC on 23 October 2026. It will wait for the response until 12:40:00, so it gives the request bundle a lifetime of 60 minutes. The request message is:<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
 <div class="lang-artwork sourcecode" id="appendix-A.1-2">
 <pre>
 Method:    GET
@@ -2695,7 +2694,7 @@ Content:   (empty)
 [
   1,                                    / version /
   h'00112233445566778899aabbccddeeff',  / correlation /
-  {2: 846074400000},                    / respond-by: 12:40:00Z /
+  {},                                   / options /
   h'00034745 54056874 7470730b 6578616d
     706c652e 636f6d0c 2f737461 7475732e
     6a736f6e 25066163 63657074 10617070
@@ -2704,16 +2703,16 @@ Content:   (empty)
 ]
 </pre><a href="#appendix-A.1-4" class="pilcrow">¶</a>
 </div>
-<p id="appendix-A.1-5">The 108 bytes of the encoded ADU are:<a href="#appendix-A.1-5" class="pilcrow">¶</a></p>
+<p id="appendix-A.1-5">The 98 bytes of the encoded ADU are:<a href="#appendix-A.1-5" class="pilcrow">¶</a></p>
 <div class="lang-artwork sourcecode" id="appendix-A.1-6">
 <pre>
 84015000 11223344 55667788 99aabbcc  ..P.."3DUfw.....
-ddeeffa1 021b0000 00c4fdf6 cd00584c  ..............XL
-00034745 54056874 7470730b 6578616d  ..GET.https.exam
-706c652e 636f6d0c 2f737461 7475732e  ple.com./status.
-6a736f6e 25066163 63657074 10617070  json%.accept.app
-6c696361 74696f6e 2f6a736f 6e037669  lication/json.vi
-6108312e 31206777 2d610000           a.1.1 gw-a..
+ddeeffa0 584c0003 47455405 68747470  ....XL..GET.http
+730b6578 616d706c 652e636f 6d0c2f73  s.example.com./s
+74617475 732e6a73 6f6e2506 61636365  tatus.json%.acce
+70741061 70706c69 63617469 6f6e2f6a  pt.application/j
+736f6e03 76696108 312e3120 67772d61  son.via.1.1 gw-a
+0000                                 ..
 </pre><a href="#appendix-A.1-6" class="pilcrow">¶</a>
 </div>
 </section>
@@ -2723,7 +2722,7 @@ ddeeffa1 021b0000 00c4fdf6 cd00584c  ..............XL
         <h3 id="name-response">
 <a href="#appendix-A.2" class="section-number selfRef">A.2. </a><a href="#name-response" class="section-name selfRef">Response</a>
         </h3>
-<p id="appendix-A.2-1">The request is delivered at 12:00:00. The origin-side gateway appends its own Via entry, forwards the request to the origin server, and receives the response at 12:00:00.250, which it records in the service-time option. It appends its Via entry to the response. The response message is:<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.2-1">The request is delivered at 12:00:00. The origin-side gateway appends its own Via entry, forwards the request to the origin server, and receives the response at 12:00:00.250. It appends its Via entry to the response, and sends it at once, in a bundle whose lifetime of 2399.75 seconds makes it expire with the request bundle at 12:40:00. The response message is:<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
 <div class="lang-artwork sourcecode" id="appendix-A.2-2">
 <pre>
 Status:  200
@@ -2741,7 +2740,7 @@ Content: {"status":"ok"}
 [
   1,                                    / version /
   h'00112233445566778899aabbccddeeff',  / correlation /
-  {1: 846072000250},                    / service-time: 12:00:00.250Z /
+  {},                                   / options /
   h'0140c840 74046461 74651d46 72692c20
     3233204f 63742032 30323620 31323a30
     303a3030 20474d54 0d636163 68652d63
@@ -2754,20 +2753,19 @@ Content: {"status":"ok"}
 ]
 </pre><a href="#appendix-A.2-4" class="pilcrow">¶</a>
 </div>
-<p id="appendix-A.2-5">The 170 bytes of the encoded ADU are:<a href="#appendix-A.2-5" class="pilcrow">¶</a></p>
+<p id="appendix-A.2-5">The 160 bytes of the encoded ADU are:<a href="#appendix-A.2-5" class="pilcrow">¶</a></p>
 <div class="lang-artwork sourcecode" id="appendix-A.2-6">
 <pre>
 84015000 11223344 55667788 99aabbcc  ..P.."3DUfw.....
-ddeeffa1 011b0000 00c4fdd2 2efa588a  ..............X.
-0140c840 74046461 74651d46 72692c20  .@.@t.date.Fri,
-3233204f 63742032 30323620 31323a30  23 Oct 2026 12:0
-303a3030 20474d54 0d636163 68652d63  0:00 GMT.cache-c
-6f6e7472 6f6c0c6d 61782d61 67653d33  ontrol.max-age=3
-3630300c 636f6e74 656e742d 74797065  600.content-type
-10617070 6c696361 74696f6e 2f6a736f  .application/jso
-6e046574 61670522 76343222 03766961  n.etag."v42".via
-08312e31 2067772d 620f7b22 73746174  .1.1 gw-b.{"stat
-7573223a 226f6b22 7d00               us":"ok"}.
+ddeeffa0 588a0140 c8407404 64617465  ....X..@.@t.date
+1d467269 2c203233 204f6374 20323032  .Fri, 23 Oct 202
+36203132 3a30303a 30302047 4d540d63  6 12:00:00 GMT.c
+61636865 2d636f6e 74726f6c 0c6d6178  ache-control.max
+2d616765 3d333630 300c636f 6e74656e  -age=3600.conten
+742d7479 70651061 70706c69 63617469  t-type.applicati
+6f6e2f6a 736f6e04 65746167 05227634  on/json.etag."v4
+32220376 69610831 2e312067 772d620f  2".via.1.1 gw-b.
+7b227374 61747573 223a226f 6b227d00  {"status":"ok"}.
 </pre><a href="#appendix-A.2-6" class="pilcrow">¶</a>
 </div>
 </section>
@@ -2778,7 +2776,7 @@ ddeeffa1 011b0000 00c4fdd2 2efa588a  ..............X.
 <a href="#appendix-A.3" class="section-number selfRef">A.3. </a><a href="#name-age" class="section-name selfRef">Age</a>
         </h3>
 <p id="appendix-A.3-1">The response is delivered to the client-side gateway at 12:20:00.250. The response carries no Age field, so age_value is 0.<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
-<p id="appendix-A.3-2">Using the service-time option (<a href="#age" class="auto internal xref">Section 10.2</a>), transit_delay is 1200 seconds, so the response's age on arrival is 1200 seconds and it remains fresh for a further 2400 seconds.<a href="#appendix-A.3-2" class="pilcrow">¶</a></p>
+<p id="appendix-A.3-2">The client-side gateway's BPA reports the response bundle's age as 1200 seconds. Using it as transit_delay (<a href="#age" class="auto internal xref">Section 10.2</a>), the response's age on arrival is 1200 seconds and it remains fresh for a further 2400 seconds.<a href="#appendix-A.3-2" class="pilcrow">¶</a></p>
 <p id="appendix-A.3-3">Using the response_delay of <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>, which here is the full round trip of about 2400 seconds, the response's age on arrival would be 2400 seconds, and it would remain fresh for only 1200 seconds. The difference is the 20 minutes the request spent in transit, before the response existed.<a href="#appendix-A.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2797,22 +2795,27 @@ ddeeffa1 011b0000 00c4fdd2 2efa588a  ..............X.
         <dd class="break"></dd>
 <dt id="appendix-B-1.3">Why an envelope rather than header fields:</dt>
         <dd style="margin-left: 1.5em" id="appendix-B-1.4">
-          <p id="appendix-B-1.4.1">The correlation identifier and timing options could have been carried as HTTP fields inside the Binary HTTP message. They are kept in a separate envelope so that no client or origin server can set them, and so that gateways need not strip them before forwarding messages; a forged service-time, for example, would let an origin manipulate how long gateways cache its responses. The envelope can also carry a version outside the structure it versions.<a href="#appendix-B-1.4.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-1.4.1">The correlation identifier and options could have been carried as HTTP fields inside the Binary HTTP message. They are kept in a separate envelope so that no client or origin server can set them, and so that gateways need not strip them before forwarding messages. The envelope can also carry a version outside the structure it versions.<a href="#appendix-B-1.4.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="appendix-B-1.5">Why not Oblivious HTTP:</dt>
+<dt id="appendix-B-1.5">Why no timing options:</dt>
         <dd style="margin-left: 1.5em" id="appendix-B-1.6">
-          <p id="appendix-B-1.6.1">Oblivious HTTP also encapsulates Binary HTTP, but adds encryption under a separate key infrastructure. BPSec already protects the bundle hop, using the keys the bundle network provisions.<a href="#appendix-B-1.6.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-1.6.1">The lifetime of the request bundle bounds the exchange, and the bundle age of the response measures its transit (<a href="#bundle-times" class="auto internal xref">Section 7.1</a>). Both are carried by the bundle, determined by the BPA whether or not the nodes have accurate clocks, and protected with the primary block. Repeating them in the ADU would add fields that need clocks and that could disagree with the bundle's own.<a href="#appendix-B-1.6.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="appendix-B-1.7">Why no sequence numbers:</dt>
+<dt id="appendix-B-1.7">Why not Oblivious HTTP:</dt>
         <dd style="margin-left: 1.5em" id="appendix-B-1.8">
-          <p id="appendix-B-1.8.1">Every ADU is self-contained, exchanges are matched by identifier, and parts of incremental responses are placed by their Content-Range. Nothing depends on the order of arrival, so there is nothing for sequence numbers to repair.<a href="#appendix-B-1.8.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-1.8.1">Oblivious HTTP also encapsulates Binary HTTP, but adds encryption under a separate key infrastructure. BPSec already protects the bundle hop, using the keys the bundle network provisions.<a href="#appendix-B-1.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="appendix-B-1.9">Why gateways rather than tunnels:</dt>
+<dt id="appendix-B-1.9">Why no sequence numbers:</dt>
         <dd style="margin-left: 1.5em" id="appendix-B-1.10">
-          <p id="appendix-B-1.10.1">A gateway can answer requests from its cache, collapse requests, and revalidate cheaply, which are the means by which HTTP copes with an expensive path. A tunnel can do none of these things, and needs the interactive end-to-end connection that a bundle network cannot provide.<a href="#appendix-B-1.10.1" class="pilcrow">¶</a></p>
+          <p id="appendix-B-1.10.1">Every ADU is self-contained, exchanges are matched by identifier, and parts of incremental responses are placed by their Content-Range. Nothing depends on the order of arrival, so there is nothing for sequence numbers to repair.<a href="#appendix-B-1.10.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="appendix-B-1.11">Why gateways rather than tunnels:</dt>
+        <dd style="margin-left: 1.5em" id="appendix-B-1.12">
+          <p id="appendix-B-1.12.1">A gateway can answer requests from its cache, collapse requests, and revalidate cheaply, which are the means by which HTTP copes with an expensive path. A tunnel can do none of these things, and needs the interactive end-to-end connection that a bundle network cannot provide.<a href="#appendix-B-1.12.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -2841,16 +2844,19 @@ ddeeffa1 011b0000 00c4fdd2 2efa588a  ..............X.
           <p id="appendix-C-2.5.1">Unknown critical options in requests: whether 501 (Not Implemented) is the right response.<a href="#appendix-C-2.5.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-C-2.6">
-          <p id="appendix-C-2.6.1">BPSec: whether its use should be required rather than recommended, and which security contexts implementations must support.<a href="#appendix-C-2.6.1" class="pilcrow">¶</a></p>
+          <p id="appendix-C-2.6.1">BPSec: whether its use should be required rather than recommended, and whether this document should name a security context that every implementation supports, given that the default security contexts <span>[<a href="#RFC9173" class="cite xref">RFC9173</a>]</span> are expected to be superseded.<a href="#appendix-C-2.6.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-C-2.7">
           <p id="appendix-C-2.7.1">Age calculation: substituting transit_delay for response_delay (<a href="#age" class="auto internal xref">Section 10.2</a>) relaxes a requirement of <span><a href="https://rfc-editor.org/rfc/rfc9111#section-4.2.3" class="relref">Section 4.2.3</a> of [<a href="#RFC9111" class="cite xref">RFC9111</a>]</span>, which says a cache "<span class="bcp14">MUST</span> interpret this value relative to the time the request was initiated". Whether this document needs to update RFC 9111, or can justify the calculation in some other way, needs review by HTTP caching experts.<a href="#appendix-C-2.7.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-C-2.8">
-          <p id="appendix-C-2.8.1">Media type: whether ADUs need a media type for storage or for transport outside BP.<a href="#appendix-C-2.8.1" class="pilcrow">¶</a></p>
+          <p id="appendix-C-2.8.1">BPA interface: this document relies on the BPA reporting the bundle age and expiry of each delivered bundle (<a href="#bundle-times" class="auto internal xref">Section 7.1</a>), which <span>[<a href="#RFC9171" class="cite xref">RFC9171</a>]</span> does not require of it.<a href="#appendix-C-2.8.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-C-2.9">
-          <p id="appendix-C-2.9.1">Naming: the name "HTTP over BP" was used by <span>[<a href="#I-D.blanchet-dtn-http-over-bp" class="cite xref">I-D.blanchet-dtn-http-over-bp</a>]</span>, which specified a different approach.<a href="#appendix-C-2.9.1" class="pilcrow">¶</a></p>
+          <p id="appendix-C-2.9.1">Media type: whether ADUs need a media type for storage or for transport outside BP.<a href="#appendix-C-2.9.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-C-2.10">
+          <p id="appendix-C-2.10.1">Naming: the name "HTTP over BP" was used by <span>[<a href="#I-D.blanchet-dtn-http-over-bp" class="cite xref">I-D.blanchet-dtn-http-over-bp</a>]</span>, which specified a different approach.<a href="#appendix-C-2.10.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>

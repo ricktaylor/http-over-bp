@@ -4,8 +4,8 @@
 
 Delay/Disruption Tolerant Networking                           R. Taylor
 Internet-Draft                                      Aalyria Technologies
-Intended status: Standards Track                         24 October 2026
-Expires: 27 April 2027
+Intended status: Standards Track                         26 October 2026
+Expires: 29 April 2027
 
 
                      HTTP over the Bundle Protocol
@@ -28,7 +28,8 @@ Abstract
    also lets BP-native applications act as HTTP clients or origin
    servers directly.  The document describes how gateways use HTTP
    caching to remain useful when round trips are long or intermittent,
-   and it requests a well-known ipn service number.
+   and it requests a well-known ipn service number and a registry for
+   envelope options.
 
 About This Document
 
@@ -62,7 +63,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 27 April 2027.
+   This Internet-Draft will expire on 29 April 2027.
 
 Copyright Notice
 
@@ -99,16 +100,15 @@ Table of Contents
      6.2.  Version
      6.3.  Correlation Identifier
      6.4.  Options
-       6.4.1.  service-time
-       6.4.2.  respond-by
      6.5.  HTTP Message
      6.6.  Field Handling
    7.  Exchange Procedures
-     7.1.  Sending a Request
-     7.2.  Processing a Request
-     7.3.  Sending a Response
-     7.4.  Receiving a Response
-     7.5.  Deadlines and Failure
+     7.1.  Bundle Age and Expiry
+     7.2.  Sending a Request
+     7.3.  Processing a Request
+     7.4.  Sending a Response
+     7.5.  Receiving a Response
+     7.6.  Deadlines and Failure
    8.  Extended Exchanges
      8.1.  Incremental Responses
      8.2.  Event Streams
@@ -128,9 +128,10 @@ Table of Contents
      12.5.  Correlation Identifiers
      12.6.  Server-Side Request Forgery
      12.7.  Replay
-     12.8.  Timing Integrity
-     12.9.  Resource Exhaustion
-     12.10. Credentials and Privacy
+     12.8.  Forged Status Reports
+     12.9.  Timing Integrity
+     12.10. Resource Exhaustion
+     12.11. Credentials and Privacy
    13. IANA Considerations
      13.1.  Well-Known Service Number
      13.2.  HTTP over BP Options Registry
@@ -251,13 +252,13 @@ Table of Contents
    capitals, as shown here.
 
    This document uses the terms "bundle", "application data unit (ADU)",
-   "bundle protocol agent (BPA)", "endpoint ID (EID)", "node ID",
-   "lifetime", and "DTN time" from [RFC9171]; the terms "intermediary",
-   "gateway", "origin server", "user agent", "target URI", "safe", and
-   "idempotent" from [RFC9110]; and the terms "shared cache", "stored
-   response", "fresh", and "stale" from [RFC9111].  Data structures are
-   described using the Concise Data Definition Language (CDDL)
-   [RFC8610].
+   "bundle protocol agent (BPA)", "endpoint ID (EID)", "lifetime",
+   "creation timestamp", and "bundle age" from [RFC9171]; the terms
+   "intermediary", "gateway", "origin server", "user agent", "target
+   URI", "safe", and "idempotent" from [RFC9110]; and the terms "shared
+   cache", "stored response", "fresh", and "stale" from [RFC9111].  Data
+   structures are described using the Concise Data Definition Language
+   (CDDL) [RFC8610].
 
    Requester:  A BP node that sends HTTP requests over BP as specified
       in this document and receives the corresponding responses.  A
@@ -488,16 +489,16 @@ Table of Contents
    requesters must learn by other means.
 
    A requester MUST address each request bundle to a singleton endpoint,
-   because it relies on the response bundle being sourced from the same
-   endpoint (Section 7.4).
+   because it admits a response only from a bundle whose source EID is
+   the EID to which it sent the request (Section 7.5).
 
 5.2.  Requester Endpoint
 
    A requester sends each request bundle from a singleton endpoint at
    which it is registered, and receives the responses at that endpoint.
-   A requester MUST NOT send a request bundle whose source is the null
-   endpoint ID (Section 4.2.5.1.1 of [RFC9171]), since there would be no
-   endpoint to which to return the response.
+   A requester MUST NOT send a request bundle whose source EID is the
+   null endpoint ID (Section 4.2.5.1.1 of [RFC9171]), since there would
+   be no endpoint to which to return the response.
 
    The requester's endpoint need not be the well-known service endpoint.
    A node that acts as both requester and responder MAY use one endpoint
@@ -535,9 +536,16 @@ Table of Contents
 6.1.  Structure
 
    Each ADU consists of exactly one CBOR [RFC8949] data item: an array
-   of four elements.
+   whose first element is a version number (Section 6.2).  The rest of
+   the array is defined by the version; this document defines version 1,
+   an array of four elements.
 
    http-over-bp-adu = [
+     version: uint,
+     * any                   ; defined by the version
+   ]
+
+   http-over-bp-adu-v1 = [
      version: 1,
      correlation: correlation-id,
      options: options,
@@ -547,15 +555,11 @@ Table of Contents
    correlation-id = bstr .size (1..64)
 
    options = {
-     ? 1 => dtn-time,        ; service-time (responses)
-     ? 2 => dtn-time,        ; respond-by (requests)
-     ? 3 => true,            ; incremental (requests)
-     ? 4 => true,            ; final-segment (responses)
+     ? 1 => true,            ; incremental (requests)
+     ? 2 => true,            ; final-segment (responses)
      ? -1 => uint,           ; segment (requests and responses)
      * int => any            ; options defined by future specifications
    }
-
-   dtn-time = uint           ; RFC 9171, Section 4.2.6
 
                           Figure 4: ADU Structure
 
@@ -565,16 +569,18 @@ Table of Contents
    The ADU MUST contain no data after the array.
 
    A receiver MUST discard, without responding, an ADU that is not well-
-   formed CBOR, that does not match Figure 4, that contains a duplicate
-   map key, or that has trailing data.
+   formed CBOR, that does not match the http-over-bp-adu rule of
+   Figure 4, that contains a duplicate map key, or that has trailing
+   data.  It then checks the version (Section 6.2); a version 1 ADU that
+   does not match the http-over-bp-adu-v1 rule MUST likewise be
+   discarded without responding.
 
 6.2.  Version
 
    The version element identifies the format of the remainder of the
-   ADU; this document specifies version 1.  A receiver MUST discard,
-   without responding, an ADU with a version it does not support.  The
-   version sits outside the structure it versions, so that a future
-   version can change any other element.
+   ADU.  A receiver MUST discard, without responding, an ADU with a
+   version it does not support.  The version sits outside the structure
+   it versions, so that a future version can change any other element.
 
 6.3.  Correlation Identifier
 
@@ -584,7 +590,7 @@ Table of Contents
 
    A requester MUST NOT use a correlation identifier that is already in
    use for another outstanding exchange from the same requester
-   endpoint, except when retrying a request (Section 7.1).  Identifiers
+   endpoint, except when retrying a request (Section 7.2).  Identifiers
    SHOULD be at least 16 bytes long and generated by a cryptographically
    secure random number generator, so that an attacker cannot predict
    them (Section 12).  A requester MAY instead encode its own state in
@@ -612,58 +618,27 @@ Table of Contents
       with 501 (Not Implemented) and a Proxy-Status field [RFC9209]
       whose "details" parameter identifies the option.  A requester that
       receives a response ADU containing a critical option that it does
-      not understand MUST discard the ADU and treat the exchange as
-      failed.
+      not understand MUST discard the ADU and, if the ADU passes the
+      admission check of Section 7.5, treat the exchange as failed.
 
    Key 0 is reserved.  The options defined by this document are listed
    in Table 1; further options are registered as described in
    Section 13.2.
 
-      +=====+===============+===========+==========+===============+
-      | Key | Name          | Used in   | Value    | Reference     |
-      +=====+===============+===========+==========+===============+
-      |   1 | service-time  | Responses | dtn-time | Section 6.4.1 |
-      +-----+---------------+-----------+----------+---------------+
-      |   2 | respond-by    | Requests  | dtn-time | Section 6.4.2 |
-      +-----+---------------+-----------+----------+---------------+
-      |   3 | incremental   | Requests  | true     | Section 8.1   |
-      +-----+---------------+-----------+----------+---------------+
-      |   4 | final-segment | Responses | true     | Section 8.2   |
-      +-----+---------------+-----------+----------+---------------+
-      |  -1 | segment       | Requests, | uint     | Section 8.2   |
-      |     |               | responses |          |               |
-      +-----+---------------+-----------+----------+---------------+
+    +=====+===============+=====================+=======+=============+
+    | Key | Name          | Used in             | Value | Reference   |
+    +=====+===============+=====================+=======+=============+
+    |   1 | incremental   | Requests            | true  | Section 8.1 |
+    +-----+---------------+---------------------+-------+-------------+
+    |   2 | final-segment | Responses           | true  | Section 8.2 |
+    +-----+---------------+---------------------+-------+-------------+
+    |  -1 | segment       | Requests, responses | uint  | Section 8.2 |
+    +-----+---------------+---------------------+-------+-------------+
 
-                Table 1: Options Defined by This Document
+                 Table 1: Options Defined by This Document
 
-6.4.1.  service-time
-
-   The service-time option carries the DTN time (Section 4.2.6 of
-   [RFC9171]) at which the responder generated the response: for an
-   origin-side gateway, the time at which it received the response
-   header section from the origin server; for a responder answering from
-   a stored response or acting as the origin server, the time at which
-   it constructed the response.
-
-   A responder whose clock is accurate, in the sense of [RFC9171],
-   SHOULD include the service-time option in every response ADU.  A
-   responder without an accurate clock MUST NOT include it.  Requesters
-   use the option to calculate the age of a response (Section 10.2).
-
-6.4.2.  respond-by
-
-   The respond-by option carries the DTN time after which the requester
-   will no longer use a response to the request.  A requester whose
-   clock is accurate SHOULD include the respond-by option in every
-   request ADU.  It matters most in requests whose method is not
-   idempotent, since it also bounds the period over which a replayed
-   request could be acted upon (Section 12.7).
-
-   A responder that has an accurate clock and receives a request ADU
-   after its respond-by time has passed SHOULD discard it without
-   processing it.  A responder MUST NOT give a response bundle a
-   lifetime that extends beyond the respond-by time of the request it
-   answers, and SHOULD NOT send a response ADU after that time.
+   The timing of an exchange is not carried in options; it is taken from
+   the bundles themselves (Section 7.1).
 
 6.5.  HTTP Message
 
@@ -695,7 +670,7 @@ Table of Contents
 
    Messages MAY carry trailer fields, and MAY be padded (Section 3.8 of
    [RFC9292]).  Padding obscures message length only when the ADU is
-   also encrypted (Section 12.10).
+   also encrypted (Section 12.11).
 
 6.6.  Field Handling
 
@@ -740,7 +715,29 @@ Table of Contents
 
 7.  Exchange Procedures
 
-7.1.  Sending a Request
+7.1.  Bundle Age and Expiry
+
+   The procedures in this section use two properties of each bundle that
+   the BPA delivers: its bundle age, the time that has elapsed since it
+   was created, and its expiry, the time at which its age will exceed
+   its lifetime.  Under Section 5.5 of [RFC9171], bundle age is
+   determined from the bundle's creation timestamp where that timestamp
+   is not zero and the receiving node's clock is accurate, and otherwise
+   from the Bundle Age block (Section 4.4.2 of [RFC9171]), so both
+   properties are available whether or not the nodes involved have
+   accurate clocks.
+
+   The timing of an exchange is carried by its bundles rather than in
+   the ADU.  The lifetime of the request bundle bounds the whole
+   exchange (Section 7.2), the response bundle expires no later than the
+   request bundle (Section 7.4), and the bundle age of a response
+   measures the time it spent in transit (Section 10.2).
+
+   [RFC9171] does not specify the interface between a BPA and the
+   application agent.  A requester or responder relies on its BPA to
+   report the bundle age and expiry of each bundle it delivers.
+
+7.2.  Sending a Request
 
    To send a request, a requester:
 
@@ -750,28 +747,31 @@ Table of Contents
        Section 6.6;
 
    3.  generates a correlation identifier (Section 6.3) and constructs
-       the request ADU, including the respond-by option (Section 6.4.2)
-       where it has an accurate clock;
+       the request ADU;
 
    4.  requests transmission of a bundle whose payload is the request
-       ADU, whose destination is the responder endpoint, and whose
-       source is the requester endpoint (Section 5.2 of [RFC9171]); and
+       ADU, whose destination EID identifies the responder endpoint, and
+       whose source EID identifies the requester endpoint (Section 5.2
+       of [RFC9171]); and
 
    5.  records the exchange: its correlation identifier, the responder
-       endpoint to which it was sent, and its deadline (Section 7.5).
+       endpoint to which it was sent, and its deadline (Section 7.6).
 
    Each request ADU is sent in a bundle of its own.  A requester MUST
    NOT place more than one ADU in a bundle.  The BPA may fragment the
    bundle in transit (Section 5.8 of [RFC9171]); the responder's BPA
    reassembles it before delivery.
 
-   The lifetime of the request bundle SHOULD be long enough for delivery
-   over the expected path, for example as estimated from a contact plan,
-   and no longer than the period during which the request remains
-   useful.  A requester MAY request bundle deletion status reports
-   (Section 6.1.1 of [RFC9171]) so that it can detect failure early
-   (Section 7.5); it SHOULD NOT request other status reports, except for
-   diagnostics, because each report adds traffic to the bundle network.
+   The lifetime of the request bundle bounds the whole exchange, since
+   no response can be sent after the request bundle expires
+   (Section 7.4).  It SHOULD be long enough for the request to reach the
+   responder and for the response to return, for example as estimated
+   from a contact plan, and no longer than the period during which the
+   requester will use a response.  A requester MAY request bundle
+   deletion status reports (Section 6.1.1 of [RFC9171]) so that it can
+   detect failure early (Section 7.6); it SHOULD NOT request other
+   status reports, except for diagnostics, because each report adds
+   traffic to the bundle network.
 
    A requester MUST NOT automatically retry a request whose method is
    not idempotent (Section 9.2.2 of [RFC9110]).  It MAY retry a request
@@ -779,9 +779,10 @@ Table of Contents
    status report or once its deadline has passed.  A retry SHOULD reuse
    the correlation identifier of the original request, so that a
    response to either attempt completes the exchange and a response to
-   the other is discarded as a duplicate.
+   the other is discarded as a duplicate.  The exchange's deadline then
+   becomes the expiry of the retry's request bundle (Section 7.6).
 
-7.2.  Processing a Request
+7.3.  Processing a Request
 
    When an ADU is delivered to a responder (Section 5.7 of [RFC9171]),
    the responder MUST discard it, without responding, if:
@@ -791,8 +792,8 @@ Table of Contents
 
    *  its message is a response;
 
-   *  the source of the bundle that carried it is the null endpoint ID;
-      or
+   *  the source EID of the bundle that carried it is the null endpoint
+      ID; or
 
    *  the bundle's "ADU is an administrative record" flag is set.
 
@@ -813,19 +814,29 @@ Table of Contents
    [RFC9111].  An origin-side gateway SHOULD apply a policy that
    restricts the destinations it will contact (Section 12.6).
 
-   A responder can receive the same request more than once: BP can
-   duplicate bundles, and a requester can retry a request with its
-   original correlation identifier.  Re-executing a request whose method
-   is not idempotent could repeat its effect.  For such requests, a
-   responder SHOULD recognise a duplicate by the source of the request
-   bundle together with its correlation identifier and, rather than
-   processing the request again, re-send the response it gave to the
-   first copy, or nothing if that response is not yet complete.  A
-   responder that does so SHOULD retain its record of each exchange at
-   least until the request's respond-by time (Section 6.4.2), or for a
-   configured period where respond-by is absent.
+   A request bundle that expires before it is delivered is deleted by
+   the BPA (Section 5.5 of [RFC9171]), so a responder does not process a
+   request after its requester has stopped waiting for the response.  A
+   responder MAY also discard, without processing, a request that it
+   estimates cannot be answered before the request bundle expires, for
+   example from a contact plan.
 
-7.3.  Sending a Response
+   A responder can receive the same request more than once.  A requester
+   can retry a request whose method is safe or idempotent (Section 7.2),
+   and the responder can simply process it again, as in HTTP.  A request
+   whose method is not idempotent is never retried automatically, but BP
+   can duplicate the bundle that carries it, and re-executing the
+   request could repeat its effect.  For such requests, a responder
+   SHOULD recognise a duplicate by the source EID of the request bundle
+   together with its correlation identifier and, rather than processing
+   the request again, re-send the response it gave to the first copy, or
+   nothing if that response is not yet complete.  A responder that does
+   so SHOULD retain its record of each exchange at least until the
+   request bundle expires (Section 7.1).  A re-sent response is subject
+   to the same lifetime bound and Age requirement as any other
+   (Section 7.4).
+
+7.4.  Sending a Response
 
    To answer a request, the responder constructs a response ADU with:
 
@@ -834,20 +845,28 @@ Table of Contents
    *  the correlation identifier copied, unchanged, from the request
       ADU;
 
-   *  the service-time option (Section 6.4.1), if its clock is accurate,
-      and any other options that apply; and
+   *  any options that apply; and
 
    *  the final response, encoded as specified in Section 6.5 and
       Section 6.6.
 
    It requests transmission of a bundle whose payload is the response
-   ADU, whose destination is the source node ID of the request bundle,
-   and whose source is the endpoint to which the request bundle was
-   addressed.  The lifetime of the response bundle MUST NOT extend
-   beyond the request's respond-by time, if present (Section 6.4.2).
+   ADU, whose destination EID is the source EID of the request bundle,
+   and whose source EID is the destination EID of the request bundle.
+   The responder MUST set the lifetime of the response bundle so that it
+   expires no later than the request bundle (Section 7.1), and SHOULD
+   NOT send a response ADU after the request bundle has expired.
 
    A responder sends one response ADU for each request it processes,
    except as specified in Section 8.
+
+   A requester measures the transit of a response from the creation of
+   the bundle that carries it (Section 10.2).  A responder that sends a
+   response some time after generating it, or after receiving it from
+   the origin server, MUST therefore include an Age field that accounts
+   for the delay.  This is the case when it answers from a stored
+   response, as Section 4 of [RFC9111] already requires, and when it re-
+   sends a response to a duplicate request (Section 7.3).
 
    When an origin-side gateway cannot complete the exchange with the
    origin server, it responds with an error response such as 502 (Bad
@@ -856,9 +875,9 @@ Table of Contents
    "dns_error", "connection_refused", "connection_timeout",
    "tls_certificate_error", or "http_response_timeout".  Clients can
    then distinguish a failure beyond the origin-side gateway from a
-   failure in the bundle network (Section 7.5).
+   failure in the bundle network (Section 7.6).
 
-7.4.  Receiving a Response
+7.5.  Receiving a Response
 
    When an ADU whose message is a response is delivered to a requester,
    the requester MUST discard it unless both:
@@ -866,7 +885,7 @@ Table of Contents
    *  the requester has an outstanding exchange with the ADU's
       correlation identifier; and
 
-   *  the source of the bundle that carried the ADU is the endpoint to
+   *  the source EID of the bundle that carried the ADU is the EID to
       which the request of that exchange was sent.
 
    This check is the requester's defence against forged responses, which
@@ -883,18 +902,13 @@ Table of Contents
    and forwards it to the client, or retains it for the client to
    collect (Section 10.3).
 
-   A requester MAY retain an exchange after its deadline has passed, so
-   that a late response to a safe request can still be stored in its
-   cache.  Such a response is subject to the same admission check as any
-   other.
-
-7.5.  Deadlines and Failure
+7.6.  Deadlines and Failure
 
    A requester assigns each exchange a deadline, after which, if no
    response has been received, the exchange has failed.  The deadline
-   SHOULD be no earlier than the expiry of the request bundle's lifetime
-   plus an allowance for processing at the responder and for the transit
-   of the response.
+   SHOULD be the expiry of the request bundle, or of the latest retry
+   (Section 7.2): no response can arrive after it, since a response
+   bundle expires no later than the request bundle (Section 7.4).
 
    When an exchange fails, a client-side gateway answers any client
    waiting for it with 504 (Gateway Timeout) and a Proxy-Status field
@@ -925,7 +939,7 @@ Table of Contents
    can send content that has not yet been produced, and holding the
    response until it is complete delays every byte of it.  A requester
    that is able to assemble a response from parts indicates so by
-   including the incremental option (key 3) in its request ADU.
+   including the incremental option (key 1) in its request ADU.
 
    A responder that receives a request with the incremental option MAY
    return the response as a sequence of 206 (Partial Content) responses
@@ -951,12 +965,13 @@ Table of Contents
    Section 3.4 of [RFC9111] allow a cache to combine partial content;
    their order of arrival is immaterial.  The exchange remains open
    until the requester holds the complete representation or its deadline
-   passes, and each part received extends the deadline.  Once the
-   complete length is known, the requester can recover any missing range
-   with an ordinary range request in a new exchange.  A requester MUST
-   NOT serve the combined representation as complete until it is
-   complete; it MAY answer a client's range request from content already
-   received (Section 3.3 of [RFC9111]).
+   passes; a requester that asks for an incremental response sets the
+   lifetime of the request bundle to cover the time the response will
+   take to complete.  Once the complete length is known, the requester
+   can recover any missing range with an ordinary range request in a new
+   exchange.  A requester MUST NOT serve the combined representation as
+   complete until it is complete; it MAY answer a client's range request
+   from content already received (Section 3.3 of [RFC9111]).
 
    A responder SHOULD bound the resources it spends on any one
    incremental response, such as bytes, parts, and elapsed time.  A
@@ -1010,11 +1025,11 @@ Table of Contents
 
    *  holds a request for a segment that is still open until the segment
       closes, and closes a segment early, even if it holds no events, so
-      that its response can be delivered before the request's respond-by
-      time; and
+      that its response can be delivered before the request bundle
+      expires; and
 
    *  marks the last segment, when the origin server ends the stream,
-      with the final-segment option (key 4).
+      with the final-segment option (key 2).
 
    A closed segment never changes, so a requester can store it and serve
    it to any number of local clients.  A client-side gateway serves each
@@ -1072,7 +1087,8 @@ Table of Contents
       response to a safe request for which an exchange is already
       outstanding, the gateway awaits that response instead of starting
       another exchange.  The key on which requests are collapsed MUST
-      distinguish requests made with different credentials, and SHOULD
+      distinguish requests made with different credentials, whether
+      carried in Authorization or Cookie fields or otherwise, and SHOULD
       include the request fields to which the response is expected to
       vary.  A gateway MUST NOT collapse unsafe requests.
 
@@ -1129,37 +1145,32 @@ Table of Contents
    halves the usable lifetime on a symmetric path, and on a long-delay
    path can make every response stale on arrival.
 
-   When a response ADU carries the service-time option (Section 6.4.1)
-   and the requester's clock is accurate, the requester can measure the
-   time the response actually spent in transit:
-
-   transit_delay = max(0, response_time - service_time)
-
-   and MAY use transit_delay in place of response_delay:
+   The bundle age of the response bundle (Section 7.1), as reported by
+   the requester's BPA when the response is delivered, is the time that
+   has elapsed since the responder requested its transmission: the time
+   the response spent in transit.  The requester MAY use it as
+   transit_delay in place of response_delay:
 
    corrected_age_value = age_value + transit_delay
 
    The result is the response's age when the responder sent it, plus the
-   time it has since spent in transit.  Where the BPA reports the age of
-   the response bundle on delivery, from the bundle's creation timestamp
-   or its Bundle Age block (Section 4.4.2 of [RFC9171]), the requester
-   MAY use that age as transit_delay; with the Bundle Age block, this
-   needs no synchronisation of clocks.
+   time it has since spent in transit.  Any delay at the responder
+   before it sent the response is carried in the Age field
+   (Section 7.4).
 
    The apparent_age calculation of [RFC9111] would also exclude the
    request's transit, but relies on the origin server's clock, in the
    Date field, being synchronised with the requester's.  A gateway
-   cannot know whether an origin server's clock is synchronised.  The
-   service-time option is generated by the responder, a BP node that is
-   expected to keep accurate time, and is covered by the same integrity
-   protection as the rest of the ADU (Section 12.8).
+   cannot know whether an origin server's clock is synchronised.  Bundle
+   age is instead determined by the BPAs on the path, from the creation
+   timestamp where the clocks of the responder's and requester's nodes
+   are accurate, or from the Bundle Age block, which needs no
+   synchronised clocks (Section 12.9).
 
-   If service_time is later than response_time by more than a configured
-   tolerance, the two clocks are not adequately synchronised, and the
-   requester MUST NOT use service-time to calculate age.  A requester
-   MUST NOT treat a response as having an age of zero when it arrives;
-   that would conceal the transit delay that the Age field exists to
-   disclose.
+   A requester whose BPA does not report the bundle age of a response
+   uses response_delay as [RFC9111] specifies.  A requester MUST NOT
+   treat a response as having an age of zero when it arrives; that would
+   conceal the transit delay that the Age field exists to disclose.
 
 10.3.  Responding to Clients During an Exchange
 
@@ -1224,17 +1235,21 @@ Table of Contents
 
 11.  Operational Considerations
 
-   Lifetimes and deadlines:  Bundle lifetimes, respond-by times, and
-      exchange deadlines need to match the latency of the path.  Contact
-      plans, where available, give the best estimates.  Values that are
-      too short fail exchanges that would have completed; values that
-      are too long hold resources for responses that will never be used.
+   Lifetimes and deadlines:  Bundle lifetimes, and so exchange
+      deadlines, need to match the latency of the path; contact plans,
+      where available, give the best estimates.  Because a response
+      bundle expires no later than the request bundle it answers, a
+      request that is delivered late in its lifetime leaves little time
+      for the response to return, so the lifetime of the request bundle
+      needs to cover both directions.  Values that are too short fail
+      exchanges that would have completed; values that are too long hold
+      resources for responses that will never be used.
 
-   Clocks:  The service-time and respond-by options are useful only
-      between nodes whose clocks are accurate.  BP nodes generally keep
-      accurate time, but a deployment with clockless nodes relies on the
-      Bundle Age block for age calculation (Section 10.2) and on bundle
-      lifetimes alone to bound exchanges.
+   Clocks:  Exchange deadlines and age calculation (Section 10.2) depend
+      on the BPAs' determination of bundle age.  BP nodes generally keep
+      accurate time; a deployment with clockless nodes relies on the
+      Bundle Age block, which every node on the path then needs to
+      maintain.
 
    Message size:  Each HTTP message is a single ADU, carried and if
       necessary fragmented by the BP layer.  Deployments typically limit
@@ -1286,13 +1301,40 @@ Table of Contents
 
 12.2.  Protecting the Bundle Hop
 
-   Requesters and responders MUST support BPSec [RFC9172] with the
-   default security contexts [RFC9173], and SHOULD protect every ADU
-   with a Block Integrity Block (BIB) and a Block Confidentiality Block
-   (BCB) targeting the payload block.  The BIB SHOULD include the
-   primary block in its integrity scope (the "Include primary block"
-   flag of Section 3.3.3 of [RFC9173]), so that the source of the
-   bundle, on which response admission depends, is authenticated.
+   Requesters and responders MUST support BPSec [RFC9172].  This
+   document does not mandate a particular security context; the choice
+   is left to the deployment, for example the COSE context
+   [I-D.ietf-dtn-bpsec-cose].  Whatever the context, the protection of
+   each ADU needs to provide three things:
+
+   Confidentiality and integrity of the ADU:  Every ADU SHOULD be
+      protected by a Block Confidentiality Block (BCB) that targets the
+      payload block.  Every BCB security context provides authenticated
+      encryption (Section 3.8 of [RFC9172]), so the BCB both conceals
+      the ADU and protects its integrity.
+
+   Integrity of the primary block:  The BCB's security context SHOULD
+      include the primary block in its additional authenticated data, so
+      that the primary block, which a BCB cannot conceal, is bound to
+      the ADU.  The primary block carries the source EID of the bundle,
+      on which response admission depends, and its creation timestamp
+      and lifetime, which bound the exchange.
+
+   Authentication of the source:  Integrity alone does not show who
+      produced the bundle.  Where a BCB is keyed so that only the two
+      peers could have produced it, for example with a key shared
+      between them or with key agreement between their static keys, the
+      BCB also authenticates the source of the bundle.  Where it is not,
+      for example when the key is agreed using an ephemeral key of the
+      sender's and the recipient's public key alone, anyone who knows
+      the recipient's public key can produce a valid BCB, with any
+      source EID in its primary block.  A sender SHOULD then also
+      protect the payload with a Block Integrity Block (BIB) that is
+      signed with a key bound to the bundle's source EID, and that the
+      BCB also encrypts (Section 3.9 of [RFC9172]).  A recipient MUST
+      NOT treat the source of a bundle as authenticated unless one of
+      these conditions holds.
+
    Without BPSec, an attacker on the path can read requests and
    responses, including credentials, and can forge responses.  A
    deployment that relies on protection at another layer should document
@@ -1301,7 +1343,7 @@ Table of Contents
 12.3.  Response Admission and Cache Poisoning
 
    A requester accepts a response only for an outstanding exchange, and
-   only from the endpoint to which it sent the request (Section 7.4).
+   only from the endpoint to which it sent the request (Section 7.5).
    Where the source of the bundle is authenticated, no third party can
    inject a response.  A forged response accepted by a client-side
    gateway could otherwise be stored in its shared cache and served to
@@ -1332,30 +1374,57 @@ Table of Contents
    services, and SHOULD support restricting the origins it will contact
    to a configured set.  It needs to apply these checks to the addresses
    that names resolve to, not only to literal addresses in the target
-   URI.
+   URI.  A gateway that refuses a request because of the address it
+   would contact responds with 502 (Bad Gateway) and a Proxy-Status
+   field [RFC9209] with the error type "destination_ip_prohibited"; one
+   that refuses it because the origin is not in its configured set
+   responds with 403 (Forbidden) and the error type
+   "http_request_denied".
 
 12.7.  Replay
 
-   The default security contexts of BPSec [RFC9173] do not prevent
-   replay.  A replayed request bundle carrying an unsafe request could
-   cause the request to be acted on again.  The responder's detection of
-   duplicate requests (Section 7.2) suppresses replays while its records
-   are retained, and the respond-by option (Section 6.4.2), which the
-   BIB protects, lets a responder reject requests after that time.
-   Together, these bound the window in which a replay can have any
-   effect.  A requester SHOULD include respond-by in every request whose
-   method is not idempotent.
+   BPSec does not itself prevent replay (Section 8.2.4 of [RFC9172]).  A
+   replayed request bundle carrying a request whose method is not
+   idempotent could cause the request to be acted on again.  The
+   responder's detection of duplicate requests (Section 7.3) suppresses
+   replays while its records are retained, and a replayed bundle expires
+   when the original does, since its creation timestamp and lifetime are
+   in the primary block, which the BCB authenticates.  Together, these
+   bound the window in which a replay can have any effect.  The bound
+   does not hold for a bundle whose creation time is zero: its age is
+   carried in the Bundle Age block, which each forwarding node updates
+   and so cannot be protected end to end, and a replaying node can reset
+   it.  A requester SHOULD send each request whose method is not
+   idempotent in a bundle with a non-zero creation timestamp, and with a
+   lifetime no longer than the exchange needs.
 
-12.8.  Timing Integrity
+12.8.  Forged Status Reports
 
-   The service-time option determines the age that a requester computes
-   for a response, and so how long the response is served.  An attacker
-   that could alter it could make a response appear fresher, or more
-   stale, than it is.  The option is protected by the BIB along with the
-   rest of the ADU, and a requester applies a tolerance check before
-   using it (Section 10.2).
+   A bundle status report is generated by whichever node deleted the
+   bundle, not by the responder, so a requester cannot check its source
+   against the exchange.  A requester that fails an exchange on
+   receiving a deletion status report (Section 7.6) can be made to fail
+   it early by a forged report.  Since the request can still be
+   delivered and acted on, this denies the client its response rather
+   than preventing the request.  A requester SHOULD act on a deletion
+   status report only if it is protected by BPSec, for example by a BIB
+   whose source the requester trusts, or else treat it as a hint and
+   wait for the exchange's deadline.
 
-12.9.  Resource Exhaustion
+12.9.  Timing Integrity
+
+   The bundle age of a response determines the age that a requester
+   computes for it (Section 10.2), and so how long the response is
+   served.  An attacker that could alter it could make a response appear
+   fresher, or more stale, than it is.  Where the response bundle has a
+   non-zero creation timestamp, that timestamp is in the primary block,
+   which the BCB authenticates.  Where its creation time is zero, the
+   age is taken from the Bundle Age block, which each forwarding node
+   updates and so cannot be protected end to end; a deployment that
+   relies on clockless nodes trusts the nodes on the path to maintain it
+   honestly.
+
+12.10.  Resource Exhaustion
 
    A small request can elicit a large response, and an incremental
    response or an event stream can elicit a long sequence of them.
@@ -1365,7 +1434,7 @@ Table of Contents
    for bundle status reports add traffic to the bundle network and
    should be limited accordingly.
 
-12.10.  Credentials and Privacy
+12.11.  Credentials and Privacy
 
    Authorization and Cookie fields cross the bundle network inside ADUs
    and need the confidentiality that a BCB provides.  Client
@@ -1496,11 +1565,6 @@ Table of Contents
               Security (BPSec)", RFC 9172, DOI 10.17487/RFC9172, January
               2022, <https://www.rfc-editor.org/rfc/rfc9172>.
 
-   [RFC9173]  Birrane, III, E., White, A., and S. Heiner, "Default
-              Security Contexts for Bundle Protocol Security (BPSec)",
-              RFC 9173, DOI 10.17487/RFC9173, January 2022,
-              <https://www.rfc-editor.org/rfc/rfc9173>.
-
    [RFC9209]  Nottingham, M. and P. Sikora, "The Proxy-Status HTTP
               Response Header Field", RFC 9209, DOI 10.17487/RFC9209,
               June 2022, <https://www.rfc-editor.org/rfc/rfc9209>.
@@ -1537,6 +1601,13 @@ Table of Contents
               Progress, Internet-Draft, draft-ietf-core-coap-bp-04, 5
               July 2026, <https://datatracker.ietf.org/doc/html/draft-
               ietf-core-coap-bp-04>.
+
+   [I-D.ietf-dtn-bpsec-cose]
+              Sipos, B., "Bundle Protocol Security (BPSec) COSE
+              Context", Work in Progress, Internet-Draft, draft-ietf-
+              dtn-bpsec-cose-17, 3 August 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-dtn-
+              bpsec-cose-17>.
 
    [I-D.ietf-httpapi-idempotency-key-header]
               Jena, J., Dalal, S., and D. Tishkin, "The Idempotency-Key
@@ -1625,6 +1696,11 @@ Table of Contents
    [RFC9114]  Bishop, M., Ed., "HTTP/3", RFC 9114, DOI 10.17487/RFC9114,
               June 2022, <https://www.rfc-editor.org/rfc/rfc9114>.
 
+   [RFC9173]  Birrane, III, E., White, A., and S. Heiner, "Default
+              Security Contexts for Bundle Protocol Security (BPSec)",
+              RFC 9173, DOI 10.17487/RFC9173, January 2022,
+              <https://www.rfc-editor.org/rfc/rfc9173>.
+
    [RFC9213]  Ludin, S., Nottingham, M., and Y. Wu, "Targeted HTTP Cache
               Control", RFC 9213, DOI 10.17487/RFC9213, June 2022,
               <https://www.rfc-editor.org/rfc/rfc9213>.
@@ -1669,9 +1745,9 @@ Appendix A.  Examples
 A.1.  Request
 
    The client-side gateway sends the request at 11:40:00 UTC on 23
-   October 2026, in a bundle with a lifetime of 30 minutes.  It will
-   wait for the response until 12:40:00, which it states in the respond-
-   by option.  The request message is:
+   October 2026.  It will wait for the response until 12:40:00, so it
+   gives the request bundle a lifetime of 60 minutes.  The request
+   message is:
 
    Method:    GET
    Scheme:    https
@@ -1687,7 +1763,7 @@ A.1.  Request
    [
      1,                                    / version /
      h'00112233445566778899aabbccddeeff',  / correlation /
-     {2: 846074400000},                    / respond-by: 12:40:00Z /
+     {},                                   / options /
      h'00034745 54056874 7470730b 6578616d
        706c652e 636f6d0c 2f737461 7475732e
        6a736f6e 25066163 63657074 10617070
@@ -1695,23 +1771,24 @@ A.1.  Request
        6108312e 31206777 2d610000'         / message /
    ]
 
-   The 108 bytes of the encoded ADU are:
+   The 98 bytes of the encoded ADU are:
 
    84015000 11223344 55667788 99aabbcc  ..P.."3DUfw.....
-   ddeeffa1 021b0000 00c4fdf6 cd00584c  ..............XL
-   00034745 54056874 7470730b 6578616d  ..GET.https.exam
-   706c652e 636f6d0c 2f737461 7475732e  ple.com./status.
-   6a736f6e 25066163 63657074 10617070  json%.accept.app
-   6c696361 74696f6e 2f6a736f 6e037669  lication/json.vi
-   6108312e 31206777 2d610000           a.1.1 gw-a..
+   ddeeffa0 584c0003 47455405 68747470  ....XL..GET.http
+   730b6578 616d706c 652e636f 6d0c2f73  s.example.com./s
+   74617475 732e6a73 6f6e2506 61636365  tatus.json%.acce
+   70741061 70706c69 63617469 6f6e2f6a  pt.application/j
+   736f6e03 76696108 312e3120 67772d61  son.via.1.1 gw-a
+   0000                                 ..
 
 A.2.  Response
 
    The request is delivered at 12:00:00.  The origin-side gateway
    appends its own Via entry, forwards the request to the origin server,
-   and receives the response at 12:00:00.250, which it records in the
-   service-time option.  It appends its Via entry to the response.  The
-   response message is:
+   and receives the response at 12:00:00.250.  It appends its Via entry
+   to the response, and sends it at once, in a bundle whose lifetime of
+   2399.75 seconds makes it expire with the request bundle at 12:40:00.
+   The response message is:
 
    Status:  200
    Fields:  date: Fri, 23 Oct 2026 12:00:00 GMT
@@ -1726,7 +1803,7 @@ A.2.  Response
    [
      1,                                    / version /
      h'00112233445566778899aabbccddeeff',  / correlation /
-     {1: 846072000250},                    / service-time: 12:00:00.250Z /
+     {},                                   / options /
      h'0140c840 74046461 74651d46 72692c20
        3233204f 63742032 30323620 31323a30
        303a3030 20474d54 0d636163 68652d63
@@ -1738,28 +1815,28 @@ A.2.  Response
        7573223a 226f6b22 7d00'             / message /
    ]
 
-   The 170 bytes of the encoded ADU are:
+   The 160 bytes of the encoded ADU are:
 
    84015000 11223344 55667788 99aabbcc  ..P.."3DUfw.....
-   ddeeffa1 011b0000 00c4fdd2 2efa588a  ..............X.
-   0140c840 74046461 74651d46 72692c20  .@.@t.date.Fri,
-   3233204f 63742032 30323620 31323a30  23 Oct 2026 12:0
-   303a3030 20474d54 0d636163 68652d63  0:00 GMT.cache-c
-   6f6e7472 6f6c0c6d 61782d61 67653d33  ontrol.max-age=3
-   3630300c 636f6e74 656e742d 74797065  600.content-type
-   10617070 6c696361 74696f6e 2f6a736f  .application/jso
-   6e046574 61670522 76343222 03766961  n.etag."v42".via
-   08312e31 2067772d 620f7b22 73746174  .1.1 gw-b.{"stat
-   7573223a 226f6b22 7d00               us":"ok"}.
+   ddeeffa0 588a0140 c8407404 64617465  ....X..@.@t.date
+   1d467269 2c203233 204f6374 20323032  .Fri, 23 Oct 202
+   36203132 3a30303a 30302047 4d540d63  6 12:00:00 GMT.c
+   61636865 2d636f6e 74726f6c 0c6d6178  ache-control.max
+   2d616765 3d333630 300c636f 6e74656e  -age=3600.conten
+   742d7479 70651061 70706c69 63617469  t-type.applicati
+   6f6e2f6a 736f6e04 65746167 05227634  on/json.etag."v4
+   32220376 69610831 2e312067 772d620f  2".via.1.1 gw-b.
+   7b227374 61747573 223a226f 6b227d00  {"status":"ok"}.
 
 A.3.  Age
 
    The response is delivered to the client-side gateway at 12:20:00.250.
    The response carries no Age field, so age_value is 0.
 
-   Using the service-time option (Section 10.2), transit_delay is 1200
-   seconds, so the response's age on arrival is 1200 seconds and it
-   remains fresh for a further 2400 seconds.
+   The client-side gateway's BPA reports the response bundle's age as
+   1200 seconds.  Using it as transit_delay (Section 10.2), the
+   response's age on arrival is 1200 seconds and it remains fresh for a
+   further 2400 seconds.
 
    Using the response_delay of [RFC9111], which here is the full round
    trip of about 2400 seconds, the response's age on arrival would be
@@ -1775,13 +1852,20 @@ Appendix B.  Design Rationale
       already deployed, and designed to be encapsulated.
 
    Why an envelope rather than header fields:  The correlation
-      identifier and timing options could have been carried as HTTP
-      fields inside the Binary HTTP message.  They are kept in a
-      separate envelope so that no client or origin server can set them,
-      and so that gateways need not strip them before forwarding
-      messages; a forged service-time, for example, would let an origin
-      manipulate how long gateways cache its responses.  The envelope
-      can also carry a version outside the structure it versions.
+      identifier and options could have been carried as HTTP fields
+      inside the Binary HTTP message.  They are kept in a separate
+      envelope so that no client or origin server can set them, and so
+      that gateways need not strip them before forwarding messages.  The
+      envelope can also carry a version outside the structure it
+      versions.
+
+   Why no timing options:  The lifetime of the request bundle bounds the
+      exchange, and the bundle age of the response measures its transit
+      (Section 7.1).  Both are carried by the bundle, determined by the
+      BPA whether or not the nodes have accurate clocks, and protected
+      with the primary block.  Repeating them in the ADU would add
+      fields that need clocks and that could disagree with the bundle's
+      own.
 
    Why not Oblivious HTTP:  Oblivious HTTP also encapsulates Binary
       HTTP, but adds encryption under a separate key infrastructure.
@@ -1827,7 +1911,9 @@ Appendix C.  Open Issues
       Implemented) is the right response.
 
    *  BPSec: whether its use should be required rather than recommended,
-      and which security contexts implementations must support.
+      and whether this document should name a security context that
+      every implementation supports, given that the default security
+      contexts [RFC9173] are expected to be superseded.
 
    *  Age calculation: substituting transit_delay for response_delay
       (Section 10.2) relaxes a requirement of Section 4.2.3 of
@@ -1835,6 +1921,10 @@ Appendix C.  Open Issues
       to the time the request was initiated".  Whether this document
       needs to update RFC 9111, or can justify the calculation in some
       other way, needs review by HTTP caching experts.
+
+   *  BPA interface: this document relies on the BPA reporting the
+      bundle age and expiry of each delivered bundle (Section 7.1),
+      which [RFC9171] does not require of it.
 
    *  Media type: whether ADUs need a media type for storage or for
       transport outside BP.
