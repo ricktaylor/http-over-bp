@@ -293,10 +293,15 @@ A requester that finds no responder for an authority MUST NOT send a request ADU
 
 ## Structure {#envelope}
 
-Each ADU consists of exactly one CBOR {{RFC8949}} data item: an array of four elements.
+Each ADU consists of exactly one CBOR {{RFC8949}} data item: an array whose first element is a version number ({{version}}). The rest of the array is defined by the version; this document defines version 1, an array of four elements.
 
 ~~~ cddl
 http-over-bp-adu = [
+  version: uint,
+  * any                   ; defined by the version
+]
+
+http-over-bp-adu-v1 = [
   version: 1,
   correlation: correlation-id,
   options: options,
@@ -316,9 +321,9 @@ options = {
 
 A sender MUST use definite-length encoding for every data item in the ADU and MUST NOT repeat a key within the options map; senders SHOULD use the core deterministic encoding of {{Section 4.2.1 of RFC8949}}. The ADU MUST contain no data after the array.
 
-A receiver MUST discard, without responding, an ADU that is not well-formed CBOR, that does not match {{fig-cddl}}, that contains a duplicate map key, or that has trailing data.
+A receiver MUST discard, without responding, an ADU that is not well-formed CBOR, that does not match the http-over-bp-adu rule of {{fig-cddl}}, that contains a duplicate map key, or that has trailing data. It then checks the version ({{version}}); a version 1 ADU that does not match the http-over-bp-adu-v1 rule MUST likewise be discarded without responding.
 
-## Version
+## Version {#version}
 
 The version element identifies the format of the remainder of the ADU; this document specifies version 1. A receiver MUST discard, without responding, an ADU with a version it does not support. The version sits outside the structure it versions, so that a future version can change any other element.
 
@@ -335,7 +340,7 @@ The options element is a map of integer keys to values, carrying metadata about 
 The sign of a key indicates whether the option is critical:
 
 - An option with a non-negative key is elective. A receiver MUST ignore an elective option that it does not understand, or that is defined only for the other direction.
-- An option with a negative key is critical. A responder that receives a request ADU containing a critical option that it does not understand MUST NOT process the request and SHOULD respond with 501 (Not Implemented) and a Proxy-Status field {{RFC9209}} whose "details" parameter identifies the option. A requester that receives a response ADU containing a critical option that it does not understand MUST discard the ADU and treat the exchange as failed.
+- An option with a negative key is critical. A responder that receives a request ADU containing a critical option that it does not understand MUST NOT process the request and SHOULD respond with 501 (Not Implemented) and a Proxy-Status field {{RFC9209}} whose "details" parameter identifies the option. A requester that receives a response ADU containing a critical option that it does not understand MUST discard the ADU and, if the ADU passes the admission check of {{receiving-response}}, treat the exchange as failed. A requester MUST NOT fail an exchange because of an ADU that does not pass that check.
 
 Key 0 is reserved. The options defined by this document are listed in {{tab-options}}; further options are registered as described in {{iana-options}}.
 
@@ -418,7 +423,7 @@ Otherwise the responder handles the request. A BP-native origin server handles i
 
 A request bundle that expires before it is delivered is deleted by the BPA ({{Section 5.5 of RFC9171}}), so a responder does not process a request after its requester has stopped waiting for the response. A responder MAY also discard, without processing, a request that it estimates cannot be answered before the request bundle expires, for example from a contact plan.
 
-A responder can receive the same request more than once: BP can duplicate bundles, and a requester can retry a request with its original correlation identifier. Re-executing a request whose method is not idempotent could repeat its effect. For such requests, a responder SHOULD recognise a duplicate by the source EID of the request bundle together with its correlation identifier and, rather than processing the request again, re-send the response it gave to the first copy, or nothing if that response is not yet complete. A responder that does so SHOULD retain its record of each exchange at least until the latest expiry of any request bundle it has received for that exchange ({{bundle-times}}).
+A responder can receive the same request more than once: BP can duplicate bundles, and a requester can retry a request with its original correlation identifier. Re-executing a request whose method is not idempotent could repeat its effect. For such requests, a responder SHOULD recognise a duplicate by the source EID of the request bundle together with its correlation identifier and, rather than processing the request again, re-send the response it gave to the first copy, or nothing if that response is not yet complete. A response re-sent to a duplicate is subject to the same lifetime bound as any other response ({{sending-response}}), and carries an Age field that accounts for the time since the response was generated. A requester does not retry such requests ({{sending-request}}), so their duplicates arise only within the bundle network. As in HTTP, a retried request whose method is safe or idempotent can simply be processed again. A responder that does so SHOULD retain its record of each exchange at least until the latest expiry of any request bundle it has received for that exchange ({{bundle-times}}).
 
 ## Sending a Response {#sending-response}
 
@@ -432,6 +437,8 @@ To answer a request, the responder constructs a response ADU with:
 It requests transmission of a bundle whose payload is the response ADU, whose destination EID is the source EID of the request bundle, and whose source EID is the destination EID of the request bundle. The responder MUST set the lifetime of the response bundle so that it expires no later than the request bundle ({{bundle-times}}), and SHOULD NOT send a response ADU after the request bundle has expired.
 
 A responder sends one response ADU for each request it processes, except as specified in {{extended}}.
+
+The requester measures the transit of a response from the creation of the bundle that carries it ({{age}}), so a responder that sends a response later than it generated it, or received it from the origin server, MUST include an Age field that accounts for the delay. This applies to a response answered from a stored response, for which {{Section 4 of RFC9111}} already requires it, and to a response re-sent to a duplicate request ({{processing-request}}).
 
 When an origin-side gateway cannot complete the exchange with the origin server, it responds with an error response such as 502 (Bad Gateway) or 504 (Gateway Timeout), carrying a Proxy-Status field {{RFC9209}} that identifies the gateway and the error type, for example "dns_error", "connection_refused", "connection_timeout", "tls_certificate_error", or "http_response_timeout". Clients can then distinguish a failure beyond the origin-side gateway from a failure in the bundle network ({{failure}}).
 
@@ -544,7 +551,7 @@ The bundle age of the response bundle ({{bundle-times}}), as reported by the req
 corrected_age_value = age_value + transit_delay
 ~~~
 
-The result is the response's age when the responder sent it, plus the time it has since spent in transit. A responder that does not send a response as soon as it has it, for example because it answers from a stored response or re-sends a response to a duplicate request, accounts for the delay in the Age field that it sends, as any cache does ({{Section 5.1 of RFC9111}}).
+The result is the response's age when the responder sent it, plus the time it has since spent in transit. Any delay at the responder before it sent the response is carried in the Age field ({{sending-response}}).
 
 The apparent_age calculation of {{RFC9111}} would also exclude the request's transit, but relies on the origin server's clock, in the Date field, being synchronised with the requester's. A gateway cannot know whether an origin server's clock is synchronised. Bundle age is instead determined by the BPAs on the path, from the creation timestamp where the clocks of the responder's and requester's nodes are accurate, or from the Bundle Age block, which needs no synchronised clocks ({{timing}}).
 
@@ -579,7 +586,7 @@ A node can act as both responder and requester, receiving requests over one bund
 # Operational Considerations
 
 Lifetimes and deadlines:
-: Bundle lifetimes, and so exchange deadlines, need to match the latency of the path. Contact plans, where available, give the best estimates. Values that are too short fail exchanges that would have completed; values that are too long hold resources for responses that will never be used.
+: Bundle lifetimes, and so exchange deadlines, need to match the latency of the path. Because a response bundle expires no later than the request bundle it answers, a request that is delivered late in its lifetime leaves little time for the response to return; the lifetime of the request bundle needs to cover both directions. Contact plans, where available, give the best estimates. Values that are too short fail exchanges that would have completed; values that are too long hold resources for responses that will never be used.
 
 Clocks:
 : Exchange deadlines and age calculation ({{age}}) depend on the BPAs' determination of bundle age. BP nodes generally keep accurate time; a deployment with clockless nodes relies on the Bundle Age block, which every node on the path then needs to maintain.
@@ -638,6 +645,10 @@ An origin-side gateway fetches whatever a request names, which makes it a means 
 ## Replay {#replay}
 
 BPSec does not itself prevent replay ({{Section 8.2.4 of RFC9172}}). A replayed request bundle carrying an unsafe request could cause the request to be acted on again. The responder's detection of duplicate requests ({{processing-request}}) suppresses replays while its records are retained, and a replayed bundle expires when the original does, since its creation timestamp and lifetime are in the primary block, which the BCB authenticates. Together, these bound the window in which a replay can have any effect. The bound does not hold for a bundle whose creation time is zero: its age is carried in the Bundle Age block, which each forwarding node updates and so cannot be protected end to end, and a replaying node can reset it. A requester SHOULD send each request whose method is not idempotent in a bundle with a non-zero creation timestamp, and with a lifetime no longer than the exchange needs.
+
+## Forged Status Reports
+
+A bundle status report is generated by whichever node deleted the bundle, not by the responder, so a requester cannot check its source against the exchange. A requester that fails an exchange on receiving a deletion status report ({{failure}}) can be made to fail it early by a forged report. Since the request can still be delivered and acted on, this denies the client its response rather than preventing the request. A requester SHOULD act on a deletion status report only if it is protected by BPSec, for example by a BIB whose source the requester trusts, or else treat it as a hint and wait for the exchange's deadline.
 
 ## Timing Integrity {#timing}
 
@@ -816,7 +827,7 @@ ddeeffa0 588a0140 c8407404 64617465  ....X..@.@t.date
 
 The response is delivered to the client-side gateway at 12:20:00.250. The response carries no Age field, so age_value is 0.
 
-The client-side gateway's BPA reports the response bundle's age as 1200 seconds. Using it as transit_delay ({{age}}), so the response's age on arrival is 1200 seconds and it remains fresh for a further 2400 seconds.
+The client-side gateway's BPA reports the response bundle's age as 1200 seconds. Using it as transit_delay ({{age}}), the response's age on arrival is 1200 seconds and it remains fresh for a further 2400 seconds.
 
 Using the response_delay of {{RFC9111}}, which here is the full round trip of about 2400 seconds, the response's age on arrival would be 2400 seconds, and it would remain fresh for only 1200 seconds. The difference is the 20 minutes the request spent in transit, before the response existed.
 
