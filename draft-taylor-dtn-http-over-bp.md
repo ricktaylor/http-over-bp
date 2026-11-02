@@ -127,7 +127,7 @@ Asynchronous and repeatable requests:
 : Clients can ask for asynchronous processing with `Prefer: respond-async` {{RFC7240}}, resubmit unsafe requests without repeating their effect using the Idempotency-Key field {{I-D.ietf-httpapi-idempotency-key-header}}, and divide large uploads into independent steps with Resumable Uploads for HTTP {{I-D.ietf-httpbis-resumable-upload}}. {{client-facing}} describes how these apply at a gateway.
 
 End-to-end security:
-: TLS terminates at the gateways ({{security}}). Mechanisms that protect HTTP messages, rather than connections, pass through gateways unchanged: HTTP Message Signatures {{RFC9421}} authenticate messages, Encrypted Content-Encoding {{RFC8188}} protects content, and Digest Fields {{RFC9530}} protect its integrity.
+: TLS terminates at the gateways ({{trust}}). Mechanisms that protect HTTP messages, rather than connections, pass through gateways unchanged: HTTP Message Signatures {{RFC9421}} authenticate messages, Encrypted Content-Encoding {{RFC8188}} protects content, and Digest Fields {{RFC9530}} protect its integrity.
 
 Cache control for DTN gateways:
 : Origin servers control caching at gateways with ordinary Cache-Control directives {{RFC9111}}. Targeted Cache-Control fields {{RFC9213}} provide the means by which directives could be addressed to DTN gateways alone; defining such a field is left to a future document.
@@ -190,7 +190,7 @@ The DTN architecture anticipated gateways of this kind. One of its stated aims i
 
 A gateway does more than translate between transports. HTTP's own means of coping with an expensive path work at the application layer, where only an intermediary can apply them: a client-side gateway answers what it can from its cache, collapses identical requests into one, and revalidates stored responses with conditional requests that cost little when nothing has changed ({{caching}}). Content can also be placed on the near side of a bundle network in advance, so that only cache fill crosses it. {{RFC3135}} describes such a device as an application layer performance enhancing proxy, with "the same functionality as the corresponding regular proxy for the same application (e.g., relay MTA or Web caching proxy) but extended with link-specific optimizations of the application protocol operation".
 
-The design assumes disruption, not necessarily delay. On a bundle path with low latency the mechanisms described here for tolerating delay never engage: responses arrive before any client notices, and a gateway pair behaves as an ordinary caching reverse proxy.
+The design assumes disruption, not necessarily delay. On a bundle path with low latency the mechanisms described here for tolerating delay never engage: responses arrive before any client notices, and a gateway pair behaves as an ordinary caching reverse proxy, with nothing configured differently.
 
 ## BP-Native HTTP {#use-native}
 
@@ -247,7 +247,7 @@ Requirements in this document that apply to every requester or every responder a
 
 A single node can act in both roles, for example as a relay between two bundle networks, or as a gateway that serves clients in each direction ({{chained}}).
 
-Gateways are HTTP intermediaries ({{Section 3.7 of RFC9110}}), and all of the requirements that {{RFC9110}} and {{RFC9111}} place on intermediaries apply to them. A client-side gateway commonly acts as a reverse proxy for the authorities it serves; it might also be configured as a forward proxy for "http" targets. In either case it terminates the client's HTTP connection, and TLS where used, and an origin-side gateway opens its own connection to the origin server. The bundle hop between them is protected with BPSec ({{security}}).
+Gateways are HTTP intermediaries ({{Section 3.7 of RFC9110}}), and all of the requirements that {{RFC9110}} and {{RFC9111}} place on intermediaries apply to them. A client-side gateway commonly acts as a reverse proxy for the authorities it serves; it might also be configured as a forward proxy for "http" targets. In either case it terminates the client's HTTP connection, and TLS where used, and an origin-side gateway opens its own connection to the origin server. The bundle hop between them is protected with BPSec ({{protecting-the-bundle-hop}}).
 
 ## Principles {#principles}
 
@@ -260,7 +260,7 @@ Explicit correlation:
 : How a response is correlated with its request depends on the HTTP version; some versions rely on the ordering of messages on a connection, and others use an explicit identifier ({{Section 7.5 of RFC9110}}). BP preserves no ordering, so this mapping uses an explicit correlation identifier carried in an envelope around the HTTP message ({{envelope}}).
 
 No sequencing:
-: No sequence numbers, acknowledgements, or retransmission state exist at this layer. Reordering is harmless because exchanges are matched by identifier, not by arrival order; duplicates are discarded because they match no outstanding exchange. Nor is ordering provided between distinct exchanges, just as HTTP provides none between requests sent on different connections.
+: No sequence numbers, acknowledgements, or retransmission state exist at this layer. Reordering is harmless because exchanges are matched by identifier, not by arrival order; a duplicate response is discarded because it matches no outstanding exchange, and a duplicate request is recognised by the same identifier ({{processing-request}}). Nor is ordering provided between distinct exchanges, just as HTTP provides none between requests sent on different connections.
 
 Connections end at the edges:
 : HTTP connections, and the TLS sessions that protect them, exist only between clients and client-side gateways and between origin-side gateways and origin servers. HTTP semantics are end to end; HTTP connections are not.
@@ -271,7 +271,7 @@ Connections end at the edges:
 
 A responder receives request ADUs at an endpoint registered for this service. The well-known endpoint is ipn-scheme service number TBD1 ({{iana-service}}) at the responder's node; for example, `ipn:977000.100.TBD1` is the responder endpoint of node 100 under allocator 977000 {{RFC9758}}.
 
-A responder SHOULD support the well-known endpoint, so that requesters can reach it without additional configuration. A responder MAY also receive requests at other endpoints, which requesters must learn by other means.
+A responder SHOULD support the well-known endpoint, so that requesters can reach it without additional configuration. A responder MAY also receive requests at other endpoints, which requesters learn by other means.
 
 A requester MUST address each request bundle to a singleton endpoint, because it admits a response only from a bundle whose source EID is the EID to which it sent the request ({{receiving-response}}).
 
@@ -286,7 +286,7 @@ The requester's endpoint need not be the well-known service endpoint. A node tha
 To send a request, a requester maps the authority component of the target URI to the EID of a responder. The mapping can come from configuration, including a default responder for authorities with no specific entry, or from a resolution service, for example one built on DNS Service Binding records {{RFC9460}}. Specifying such a service is outside the scope of this document; whatever the mechanism:
 
 - A specific mapping for an authority MUST take precedence over a default.
-- The integrity of the mapping MUST be protected, since an attacker who can alter it can direct requests, and the responses that populate a shared cache, to a responder of its choosing ({{security}}).
+- The integrity of the mapping MUST be protected, since an attacker who can alter it can direct requests, and the responses that populate a shared cache, to a responder of its choosing ({{resolution}}).
 - A name with local scope, such as a single-label name or one under a special-use domain, MUST NOT be resolved using global resolution services.
 
 A requester that finds no responder for an authority MUST NOT send a request ADU. A client-side gateway in that situation SHOULD respond with 502 (Bad Gateway) and a Proxy-Status field {{RFC9209}} with the error type "destination_not_found".
@@ -333,7 +333,7 @@ The version element identifies the format of the remainder of the ADU. A receive
 
 The correlation identifier associates a response with its request. The requester generates it; the responder treats it as opaque and copies it unchanged into each response ADU it sends for that request.
 
-A requester MUST NOT use a correlation identifier that is already in use for another outstanding exchange from the same requester endpoint, except when retrying a request ({{sending-request}}). Identifiers SHOULD be at least 16 bytes long and generated by a cryptographically secure random number generator, so that an attacker cannot predict them ({{security}}). A requester MAY instead encode its own state in the identifier, for example an authenticated token that lets it process responses without retaining per-exchange state, provided the result is equally unpredictable.
+A requester MUST NOT use a correlation identifier that is already in use for another outstanding exchange from the same requester endpoint, except when retrying a request ({{sending-request}}). Identifiers SHOULD be at least 16 bytes long and generated by a cryptographically secure random number generator, so that an attacker cannot predict them ({{correlation-security}}). A requester MAY instead encode its own state in the identifier, for example an authenticated token that lets it process responses without retaining per-exchange state, provided the result is equally unpredictable.
 
 ## Options {#options}
 
@@ -342,7 +342,7 @@ The options element is a map of integer keys to values, carrying metadata about 
 The sign of a key indicates whether the option is critical:
 
 - An option with a non-negative key is elective. A receiver MUST ignore an elective option that it does not understand, or that is defined only for the other direction.
-- An option with a negative key is critical. A responder that receives a request ADU containing a critical option that it does not understand MUST NOT process the request and SHOULD respond with 501 (Not Implemented) and a Proxy-Status field {{RFC9209}} whose "details" parameter identifies the option. A requester that receives a response ADU containing a critical option that it does not understand MUST discard the ADU and, if the ADU passes the admission check of {{receiving-response}}, treat the exchange as failed.
+- An option with a negative key is critical. A responder that receives a request ADU containing a critical option that it does not understand MUST NOT process the request and SHOULD respond with 501 (Not Implemented) and a Proxy-Status field {{RFC9209}} whose "details" parameter identifies the option. A requester that receives a response ADU containing a critical option that it does not understand MUST NOT process the response: if the ADU passes the admission check of {{receiving-response}}, the requester fails the exchange ({{failure}}); otherwise it discards the ADU.
 
 Key 0 is reserved. The options defined by this document are listed in {{tab-options}}; further options are registered as described in {{iana-options}}.
 
@@ -373,7 +373,7 @@ No HTTP connection spans the bundle hop, so fields that describe a connection ha
 
 - the connection-specific fields listed in {{Section 7.6.1 of RFC9110}}: Connection and every field it names, Proxy-Connection, Keep-Alive, TE, Transfer-Encoding, and Upgrade. {{Section 3.6 of RFC9292}} recommends removing these; this document requires it;
 - the proxy authentication fields of {{Section 11.7 of RFC9110}}, which apply only to the hop on which they were received; and
-- fields consumed by the gateway itself, such as Client-Cert and Client-Cert-Chain {{RFC9440}}, which client credentials must never carry beyond the gateway that verified them.
+- fields consumed by the gateway itself, such as Client-Cert and Client-Cert-Chain {{RFC9440}}, which carry client credentials that are not to be forwarded beyond the gateway that verified them.
 
 A client-side gateway has to receive the complete request content before it can encode the request, so it satisfies an `Expect: 100-continue` expectation itself, sending either 100 (Continue) or a final response as {{Section 10.1.1 of RFC9110}} requires of a server, and removes the expectation from the request before encoding it.
 
@@ -382,7 +382,7 @@ Each gateway MUST record itself in the Via header field as {{Section 7.6.3 of RF
 > The received-protocol that an origin-side gateway records for a request received over BP is an open issue ({{open-issues}}).
 {:cref}
 
-A responder with a clock that receives a response without a Date header field from an origin server MUST add one before encoding the response, as {{Section 6.6.1 of RFC9110}} requires of any recipient that forwards such a response.
+An origin-side gateway with a clock that receives a response without a Date header field from the origin server MUST add one before encoding the response, as {{Section 6.6.1 of RFC9110}} requires of any recipient that forwards such a response.
 
 # Exchange Procedures {#procedures}
 
@@ -404,7 +404,7 @@ To send a request, a requester:
 4. requests transmission of a bundle whose payload is the request ADU, whose destination EID identifies the responder endpoint, and whose source EID identifies the requester endpoint ({{Section 5.2 of RFC9171}}); and
 5. records the exchange: its correlation identifier, the responder endpoint to which it was sent, and its deadline ({{failure}}).
 
-Each request ADU is sent in a bundle of its own. A requester MUST NOT place more than one ADU in a bundle. The BPA may fragment the bundle in transit ({{Section 5.8 of RFC9171}}); the responder's BPA reassembles it before delivery.
+Each request ADU is sent in a bundle of its own. A requester MUST NOT place more than one ADU in a bundle. The BPA can fragment the bundle in transit ({{Section 5.8 of RFC9171}}); the responder's BPA reassembles it before delivery.
 
 The lifetime of the request bundle bounds the whole exchange, since no response can be sent after the request bundle expires ({{sending-response}}). It SHOULD be long enough for the request to reach the responder and for the response to return, for example as estimated from a contact plan, and no longer than the period during which the requester will use a response. A requester MAY request bundle deletion status reports ({{Section 6.1.1 of RFC9171}}) so that it can detect failure early ({{failure}}); it SHOULD NOT request other status reports, except for diagnostics, because each report adds traffic to the bundle network.
 
@@ -414,7 +414,7 @@ A requester MUST NOT automatically retry a request whose method is not idempoten
 
 When an ADU is delivered to a responder ({{Section 5.7 of RFC9171}}), the responder MUST discard it, without responding, if:
 
-- the ADU is not valid as specified in {{envelope}}, or has an unsupported version;
+- the ADU is not valid as specified in {{envelope}}, or has an unsupported version ({{version}});
 - its message is a response;
 - the source EID of the bundle that carried it is the null endpoint ID; or
 - the bundle's "ADU is an administrative record" flag is set.
@@ -425,7 +425,7 @@ Otherwise the responder handles the request. A BP-native origin server handles i
 
 A request bundle that expires before it is delivered is deleted by the BPA ({{Section 5.5 of RFC9171}}), so a responder does not process a request after its requester has stopped waiting for the response. A responder MAY also discard, without processing, a request that it estimates cannot be answered before the request bundle expires, for example from a contact plan.
 
-A responder can receive the same request more than once. A requester can retry a request whose method is safe or idempotent ({{sending-request}}), and the responder can simply process it again, as in HTTP. A request whose method is not idempotent is never retried automatically, but BP can duplicate the bundle that carries it, and re-executing the request could repeat its effect. For such requests, a responder SHOULD recognise a duplicate by the source EID of the request bundle together with its correlation identifier and, rather than processing the request again, re-send the response it gave to the first copy, or nothing if that response is not yet complete. A responder that does so SHOULD retain its record of each exchange at least until the request bundle expires ({{bundle-times}}). A re-sent response is subject to the same lifetime bound and Age requirement as any other ({{sending-response}}).
+A responder can receive the same request more than once. A requester can retry a request whose method is safe or idempotent ({{sending-request}}), and the responder can simply process it again, as in HTTP. A request whose method is not idempotent is never retried automatically, but BP can duplicate the bundle that carries it, and re-executing the request could repeat its effect. For such requests, a responder SHOULD recognise a duplicate by the source EID of the request bundle together with its correlation identifier and, rather than processing the request again, re-send the response it gave to the first copy, or send nothing if that response is not yet complete. A responder that does so SHOULD retain its record of each exchange at least until the request bundle expires ({{bundle-times}}). A re-sent response is subject to the same lifetime bound and Age requirement as any other ({{sending-response}}).
 
 ## Sending a Response {#sending-response}
 
@@ -451,7 +451,7 @@ When an ADU whose message is a response is delivered to a requester, the request
 - the requester has an outstanding exchange with the ADU's correlation identifier; and
 - the source EID of the bundle that carried the ADU is the EID to which the request of that exchange was sent.
 
-This check is the requester's defence against forged responses, which could otherwise poison a shared cache for every client of the gateway; its strength depends on the authentication of the bundle's source ({{admission}}).
+This check is the requester's defence against forged responses, which could otherwise poison a client-side gateway's shared cache for every client it serves; its strength depends on the authentication of the bundle's source ({{admission}}).
 
 A requester MUST discard a response ADU for an exchange that has already completed, except as specified in {{extended}}. Otherwise, the response completes the exchange. The requester processes the response as an HTTP intermediary or client would: a client-side gateway applies the field handling of {{fields}}, calculates the response's age ({{age}}), stores it if permitted ({{caching}}), and forwards it to the client, or retains it for the client to collect ({{client-facing}}).
 
@@ -471,7 +471,7 @@ After a safe request fails, a client-side gateway SHOULD NOT send the same reque
 
 ## Incremental Responses {#incremental}
 
-Some responses are produced slowly: an origin server sends the header section promptly, then content over an extended period. No responder can send content that has not yet been produced, and holding the response until it is complete delays every byte of it. A requester that is able to assemble a response from parts indicates so by including the incremental option (key 1) in its request ADU.
+Some responses are produced slowly: an origin server sends the header section promptly, then content over an extended period. No responder can send content that has not yet been produced, and holding the response until it is complete delays every byte of it. A requester that is able to assemble a response from parts indicates this by including the incremental option (key 1) in its request ADU.
 
 A responder that receives a request with the incremental option MAY return the response as a sequence of 206 (Partial Content) responses ({{Section 15.3.7 of RFC9110}}), each in its own response ADU with the request's correlation identifier. Each of these responses:
 
@@ -483,7 +483,7 @@ The responder chooses when to send each part. A response that is complete before
 
 The requester combines the parts as {{Section 3.3 of RFC9111}} and {{Section 3.4 of RFC9111}} allow a cache to combine partial content; their order of arrival is immaterial. The exchange remains open until the requester holds the complete representation or its deadline passes; a requester that asks for an incremental response sets the lifetime of the request bundle to cover the time the response will take to complete. Once the complete length is known, the requester can recover any missing range with an ordinary range request in a new exchange. A requester MUST NOT serve the combined representation as complete until it is complete; it MAY answer a client's range request from content already received ({{Section 3.3 of RFC9111}}).
 
-A responder SHOULD bound the resources it spends on any one incremental response, such as bytes, parts, and elapsed time. A responder that abandons a response before it is complete SHOULD send a final response ADU containing a 502 (Bad Gateway) response with a Proxy-Status field (for example, with error type "http_response_body_size"). On receiving it, the requester fails the exchange and MUST NOT treat the content received so far as a complete representation.
+A responder SHOULD bound the resources it spends on any one incremental response, such as bytes, parts, and elapsed time. A responder that abandons a response before it is complete SHOULD send a final response ADU containing a 502 (Bad Gateway) response with a Proxy-Status field (for example with the error type "http_response_body_size"). On receiving it, the requester fails the exchange and MUST NOT treat the content received so far as a complete representation.
 
 > An origin-side gateway might need to supply a strong validator for a response that has none. Whether, and how, it should do so without creating a validator the origin server would not recognise is an open issue ({{open-issues}}).
 {:cref}
@@ -594,20 +594,17 @@ Clocks:
 : Exchange deadlines and age calculation ({{age}}) depend on the BPAs' determination of bundle age. BP nodes generally keep accurate time; a deployment with clockless nodes relies on the Bundle Age block, which every node on the path then needs to maintain.
 
 Message size:
-: Each HTTP message is a single ADU, carried and if necessary fragmented by the BP layer. Deployments typically limit message sizes. A client-side gateway that refuses request content as too large responds with 413 (Content Too Large); a responder that refuses a response as too large responds with 502 (Bad Gateway) and a Proxy-Status field with the error type "http_response_body_size".
+: Each HTTP message is a single ADU, carried, and if necessary fragmented, by the BP layer. Deployments typically limit message sizes. A client-side gateway that refuses request content as too large responds with 413 (Content Too Large); a responder that refuses a response as too large responds with 502 (Bad Gateway) and a Proxy-Status field with the error type "http_response_body_size".
 
 Round trips:
-: Some HTTP patterns cost a round trip each: redirects, authentication challenges, and preflight requests. Over a long-delay path each of these can cost hours. Origins that expect to be reached across a bundle network can avoid them, for example by sending credentials preemptively.
+: Some HTTP patterns cost a round trip each: redirects, authentication challenges, and preflight requests. Over a long-delay path each of these can cost hours. Origins that expect to be reached across a bundle network can be designed to avoid them, for example by accepting credentials sent preemptively rather than challenging for them.
 
 Time-limited authorisations:
 : Signed URIs, tokens, and licence exchanges that expire within less than the latency of the path expire in transit. This is a property of the origin's security design, which no gateway can work around.
 
-Low-latency paths:
-: On a path with low latency, requests complete before any client times out, and a gateway pair behaves like an ordinary caching reverse proxy. Nothing in the mapping needs to be configured differently.
-
 # Security Considerations {#security}
 
-## Trust Model
+## Trust Model {#trust}
 
 TLS terminates at the gateways, so there is no end-to-end TLS between client and origin server. A client entrusts the client-side gateway with the content of its requests and responses, as it would any reverse proxy that terminates TLS, and a gateway presents certificates only for names it is authorised to serve. The origin-side gateway authenticates the origin server ({{Section 4.3.4 of RFC9110}}). Intercepting TLS connections to arbitrary origins by means of a locally installed certification authority is outside the scope of this document; it exposes all traffic to the gateway, defeats certificate pinning, and is appropriate only where the operator controls the clients.
 
@@ -626,17 +623,17 @@ Integrity of the primary block:
 Authentication of the source:
 : Integrity alone does not show who produced the bundle. Where a BCB is keyed so that only the two peers could have produced it, for example with a key shared between them or with key agreement between their static keys, the BCB also authenticates the source of the bundle. Where it is not, for example when the key is agreed using an ephemeral key of the sender's and the recipient's public key alone, anyone who knows the recipient's public key can produce a valid BCB, with any source EID in its primary block. A sender SHOULD then also protect the payload with a Block Integrity Block (BIB) that is signed with a key bound to the bundle's source EID, and that the BCB also encrypts ({{Section 3.9 of RFC9172}}). A recipient MUST NOT treat the source of a bundle as authenticated unless one of these conditions holds.
 
-Without BPSec, an attacker on the path can read requests and responses, including credentials, and can forge responses. A deployment that relies on protection at another layer should document that dependency.
+Without BPSec, an attacker on the path can read requests and responses, including credentials, and can forge responses. A deployment that relies on protection at another layer needs to document that dependency.
 
 ## Response Admission and Cache Poisoning {#admission}
 
-A requester accepts a response only for an outstanding exchange, and only from the endpoint to which it sent the request ({{receiving-response}}). Where the source of the bundle is authenticated, no third party can inject a response. A forged response accepted by a client-side gateway could otherwise be stored in its shared cache and served to every client. The parts of an incremental response must also share a strong validator ({{incremental}}).
+A requester accepts a response only for an outstanding exchange, and only from the endpoint to which it sent the request ({{receiving-response}}). Where the source of the bundle is authenticated, no third party can inject a response. A forged response accepted by a client-side gateway could otherwise be stored in its shared cache and served to every client. For the same reason, the parts of an incremental response are required to share a strong validator ({{incremental}}).
 
-## Resolution Integrity
+## Resolution Integrity {#resolution}
 
 Response admission is only as strong as the mapping from authority to responder ({{discovery}}). An attacker that can alter the mapping can direct requests, and the responses that populate a shared cache, to a responder of its choosing. Mappings obtained from DNS need to be validated with DNSSEC; where that is not possible, mappings need to be configured or pinned.
 
-## Correlation Identifiers
+## Correlation Identifiers {#correlation-security}
 
 Unpredictable correlation identifiers ({{correlation}}) make blind injection of responses harder where the bundle hop is not protected. They are not a substitute for BPSec.
 
@@ -842,7 +839,7 @@ Why an envelope rather than header fields:
 : The correlation identifier and options could have been carried as HTTP fields inside the Binary HTTP message. They are kept in a separate envelope so that no client or origin server can set them, and so that gateways need not strip them before forwarding messages. The envelope can also carry a version outside the structure it versions.
 
 Why no timing options:
-: The lifetime of the request bundle bounds the exchange, and the bundle age of the response measures its transit ({{bundle-times}}). Both are carried by the bundle, determined by the BPA whether or not the nodes have accurate clocks, and protected with the primary block. Repeating them in the ADU would add fields that need clocks and that could disagree with the bundle's own.
+: The lifetime of the request bundle bounds the exchange, and the bundle age of the response measures its transit ({{bundle-times}}). Both are carried by the bundle, determined by the BPA whether or not the nodes have accurate clocks, and, where they come from the primary block, protected with it ({{timing}}). Repeating them in the ADU would add fields that need clocks and that could disagree with the bundle's own.
 
 Why not Oblivious HTTP:
 : Oblivious HTTP also encapsulates Binary HTTP, but adds encryption under a separate key infrastructure. BPSec already protects the bundle hop, using the keys the bundle network provisions.
